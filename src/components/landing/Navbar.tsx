@@ -72,19 +72,19 @@ export default function Navbar() {
           </div>
           
           {/* Right side - Auth buttons */}
-          <div className="hidden md:flex md:items-center md:space-x-4">
-            <Link
-              href="/signin"
-              className="text-gray-700 hover:text-ncaa-blue font-medium transition-colors px-3 py-2 text-sm"
+          <div className="hidden md:flex md:flex-1 md:justify-end md:space-x-6">
+            <Link 
+              href="/dashboard" 
+              className="hidden sm:block lando-button-secondary"
             >
-              Log in
+              Login
             </Link>
-            <Link
-              href="#waitlist"
-              className="bg-gradient-to-r from-ncaa-blue to-ncaa-lightblue hover:from-ncaa-darkblue hover:to-ncaa-blue text-white font-medium rounded-xl px-5 py-2 text-sm transition-all duration-300 hover:shadow-md"
+            <a
+              href="#demo"
+              className="lando-button-primary"
             >
-              Join Waitlist
-            </Link>
+              Book a Demo
+            </a>
           </div>
           
           {/* Mobile menu button */}
@@ -136,13 +136,13 @@ export default function Navbar() {
               >
                 Log in
               </Link>
-              <Link
-                href="#waitlist"
-                className="text-center w-full px-4 py-2 text-base font-medium text-white bg-gradient-to-r from-ncaa-blue to-ncaa-lightblue border border-transparent rounded-xl hover:from-ncaa-darkblue hover:to-ncaa-blue transition-colors"
+              <a
+                href="#demo"
+                className="-mx-3 block rounded-lg px-3 py-2.5 text-base font-semibold leading-7 text-white bg-ncaa-blue hover:bg-ncaa-darkblue"
                 onClick={() => setMobileMenuOpen(false)}
               >
-                Join Waitlist
-              </Link>
+                Book a Demo
+              </a>
             </div>
           </div>
         </div>
