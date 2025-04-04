@@ -20,11 +20,11 @@ export default function Hero() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
               <div className="relative z-10">
                 <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-ncaa-darkblue mb-6 leading-tight">
-                  NIL compliance<br />made<br />simple.
+                  NILytics:<br />Smart NIL<br />compliance.
                 </h1>
                 <div className="p-6 rounded-xl bg-gradient-to-r from-ncaa-blue to-ncaa-lightblue text-white shadow-lg mb-8">
                   <p className="text-xl font-medium mb-4">
-                    Get the clearest picture of NIL compliance
+                    Data-driven NIL compliance for athletic departments
                   </p>
                   <p className="text-lg opacity-90">
                     Join universities across the country in achieving Title IX compliance with our powerful analytics platform.
@@ -100,7 +100,7 @@ export default function Hero() {
               ))}
             </div>
             <p className="text-center text-gray-700 max-w-3xl mx-auto">
-              "This NIL compliance tool has completely transformed how we manage athlete endorsements. The automation and reporting features save us countless hours every month."
+              "NILytics has completely transformed how we manage athlete endorsements. The analytics and reporting features save us countless hours every month."
             </p>
             <p className="mt-4 font-medium text-ncaa-darkblue">Sarah Johnson</p>
             <p className="text-sm text-gray-600">Athletic Director, Pacific University</p>

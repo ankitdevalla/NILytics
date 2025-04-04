@@ -2,11 +2,13 @@
 
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 
 const navLinks = [
   { name: 'Home', href: '/' },
   { name: 'Features', href: '#features' },
   { name: 'Pricing', href: '#pricing' },
+  { name: 'Waitlist', href: '#waitlist' },
   { name: 'About us', href: '#about' },
   { name: 'Contact', href: '#contact' },
 ]
@@ -38,12 +40,18 @@ export default function Navbar() {
           {/* Logo */}
           <div className="flex-shrink-0">
             <Link href="/" className="flex items-center">
-              <span className="text-xl sm:text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-ncaa-blue to-ncaa-lightblue">
-                NIL Compliance
-              </span>
-              <div className="ml-2 px-2 py-1 text-xs font-semibold rounded-full bg-gradient-to-r from-ncaa-blue/10 to-ncaa-lightblue/10 text-ncaa-blue">
-                BETA
+              <div className="h-10 w-10 relative mr-3">
+                <Image 
+                  src="/logo.png" 
+                  alt="NILytics Logo" 
+                  fill
+                  style={{ objectFit: 'contain' }}
+                  className="rounded-md"
+                />
               </div>
+              <span className="text-xl sm:text-2xl font-bold text-ncaa-darkblue">
+                NILytics
+              </span>
             </Link>
           </div>
           

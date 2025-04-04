@@ -5,8 +5,8 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'NIL Compliance Dashboard',
-  description: 'Track and analyze NIL payments for Title IX compliance',
+  title: 'NILytics - Data-driven NIL Compliance for Athletic Departments',
+  description: 'NILytics helps athletic departments track and analyze NIL payments for Title IX compliance with powerful analytics and reporting tools.',
 }
 
 export default function RootLayout({

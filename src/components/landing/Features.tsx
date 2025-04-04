@@ -44,10 +44,10 @@ export default function Features() {
             Features
           </p>
           <h2 className="text-3xl md:text-4xl font-bold text-ncaa-darkblue mb-6">
-            Powerful features for your compliance needs
+            NILytics: Powerful Tools for Your Compliance Needs
           </h2>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Everything you need to manage NIL payments and ensure Title IX compliance in one platform.
+            Everything you need to manage NIL payments and ensure Title IX compliance in one powerful analytics platform.
           </p>
         </div>
 

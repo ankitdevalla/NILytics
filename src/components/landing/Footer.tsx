@@ -1,16 +1,17 @@
 import React from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 
 const productLinks = [
   { name: 'Dashboard', href: '/dashboard' },
-  { name: 'Features', href: '#' },
-  { name: 'Pricing', href: '#' },
+  { name: 'Features', href: '#features' },
+  { name: 'Pricing', href: '#pricing' },
   { name: 'Documentation', href: '#' },
 ]
 
 const companyLinks = [
   { name: 'About', href: '#' },
-  { name: 'Contact', href: '#' },
+  { name: 'Contact', href: '#contact' },
   { name: 'Privacy', href: '#' },
   { name: 'Terms', href: '#' },
 ]
@@ -38,19 +39,32 @@ const socialLinks = [
 
 export default function Footer() {
   return (
-    <footer className="bg-white border-t border-gray-200">
-      <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+    <footer className="bg-white">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          <div className="col-span-1 md:col-span-2">
-            <div className="text-2xl font-bold text-gray-900 mb-4">NIL Compliance</div>
-            <p className="text-gray-600 max-w-md mb-4">
-              Ensuring Title IX compliance while managing Name, Image, and Likeness payments for student-athletes.
+          <div className="col-span-1 md:col-span-1">
+            <Link href="/" className="flex items-center">
+              <div className="h-10 w-10 relative mr-3">
+                <Image 
+                  src="/logo.png" 
+                  alt="NILytics Logo" 
+                  fill
+                  style={{ objectFit: 'contain' }}
+                  className="rounded-md"
+                />
+              </div>
+              <span className="text-xl font-bold text-ncaa-darkblue">
+                NILytics
+              </span>
+            </Link>
+            <p className="mt-4 text-sm text-gray-600">
+              Data-driven NIL compliance for athletic departments
             </p>
-            <div className="flex space-x-4">
+            <div className="mt-4 flex space-x-6">
               {socialLinks.map((item) => (
                 <a 
-                  key={item.name}
-                  href={item.href}
+                  key={item.name} 
+                  href={item.href} 
                   className="text-gray-400 hover:text-ncaa-blue transition-colors"
                 >
                   <span className="sr-only">{item.name}</span>
@@ -99,7 +113,7 @@ export default function Footer() {
         
         <div className="mt-12 pt-8 border-t border-gray-200 flex flex-col md:flex-row justify-between items-center">
           <p className="text-gray-500 text-sm">
-            &copy; {new Date().getFullYear()} NIL Compliance. All rights reserved.
+            &copy; {new Date().getFullYear()} NILytics. All rights reserved.
           </p>
           <div className="mt-4 md:mt-0 flex space-x-6">
             <Link href="#" className="text-gray-500 hover:text-ncaa-blue text-sm transition-colors">
