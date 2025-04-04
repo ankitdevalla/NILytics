@@ -6,16 +6,12 @@ import Image from 'next/image'
 
 export default function Hero() {
   return (
-    <section className="py-12 md:py-20">
+    <section className="py-6 md:py-12">
       <div className="lando-card overflow-visible bg-white/90 backdrop-blur-sm">
         <div className="relative px-6 py-10 sm:px-12 lg:px-16">
           <div className="relative">
             <div className="absolute -top-10 -left-8 w-20 h-20 bg-ncaa-lightblue/20 rounded-full filter blur-xl opacity-70"></div>
             <div className="absolute -bottom-20 -right-10 w-32 h-32 bg-ncaa-blue/20 rounded-full filter blur-xl opacity-70"></div>
-            
-            <p className="inline-block text-sm font-semibold uppercase tracking-wide text-ncaa-blue bg-blue-50 px-3 py-1 rounded-full mb-4">
-              FREE 30 DAYS TRIAL
-            </p>
             
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
               <div className="relative z-10">

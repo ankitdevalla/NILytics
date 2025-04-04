@@ -4,13 +4,11 @@ import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 
+// Updated navigation links - only keeping Features, Pricing, and Contact
 const navLinks = [
-  { name: 'Home', href: '/' },
   { name: 'Features', href: '#features' },
   { name: 'Pricing', href: '#pricing' },
-  { name: 'Waitlist', href: '#waitlist' },
-  { name: 'About us', href: '#about' },
-  { name: 'Contact', href: '#contact' },
+  { name: 'Contact', href: '/contact' },
 ]
 
 export default function Navbar() {
@@ -31,13 +29,13 @@ export default function Navbar() {
 
   return (
     <nav className={`sticky top-0 z-50 transition-all duration-300 ${
-      scrolled ? 'py-2 glass-effect backdrop-blur-md' : 'py-4 bg-transparent'
+      scrolled ? 'py-1 glass-effect backdrop-blur-md' : 'py-2 bg-transparent'
     }`}>
       <div className={`mx-auto rounded-2xl transition-all duration-300 ${
         scrolled ? 'glass-effect shadow-sm' : ''
       }`}>
-        <div className="flex items-center justify-between px-4 py-3 sm:px-6">
-          {/* Logo */}
+        <div className="flex items-center justify-between px-4 py-2 sm:px-6">
+          {/* Logo - Left side */}
           <div className="flex-shrink-0">
             <Link href="/" className="flex items-center">
               <div className="h-10 w-10 relative mr-3">
@@ -55,9 +53,10 @@ export default function Navbar() {
             </Link>
           </div>
           
-          {/* Desktop Nav */}
-          <div className="hidden md:flex md:flex-1 md:items-center md:justify-center">
-            <div className="flex space-x-8">
+          {/* Right side - Navigation and Auth buttons */}
+          <div className="hidden md:flex md:items-center md:space-x-6">
+            {/* Navigation links moved to the right */}
+            <div className="flex space-x-6">
               {navLinks.map((link) => (
                 <Link
                   key={link.name}
@@ -69,22 +68,22 @@ export default function Navbar() {
                 </Link>
               ))}
             </div>
-          </div>
-          
-          {/* Right side - Auth buttons */}
-          <div className="hidden md:flex md:flex-1 md:justify-end md:space-x-6">
-            <Link 
-              href="/dashboard" 
-              className="hidden sm:block lando-button-secondary"
-            >
-              Login
-            </Link>
-            <a
-              href="#demo"
-              className="lando-button-primary"
-            >
-              Book a Demo
-            </a>
+            
+            {/* Auth buttons */}
+            <div className="flex space-x-4">
+              <Link 
+                href="/dashboard" 
+                className="lando-button-secondary"
+              >
+                Login
+              </Link>
+              <a
+                href="#demo"
+                className="lando-button-primary"
+              >
+                Book a Demo
+              </a>
+            </div>
           </div>
           
           {/* Mobile menu button */}
@@ -130,11 +129,11 @@ export default function Navbar() {
             ))}
             <div className="mt-6 pt-6 border-t border-gray-100 grid grid-cols-2 gap-3">
               <Link
-                href="/signin"
+                href="/dashboard"
                 className="text-center w-full px-4 py-2 text-base font-medium text-gray-700 hover:text-ncaa-blue border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
                 onClick={() => setMobileMenuOpen(false)}
               >
-                Log in
+                Login
               </Link>
               <a
                 href="#demo"
