@@ -1,11 +1,14 @@
 import { createClient } from '@supabase/supabase-js'
+import { createClientComponentClient } from './auth'
 
 // Define your Supabase URL and anon key from environment variables
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 
-// Create Supabase client
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+// Use the same Supabase client across the app
+export const getSupabase = () => {
+  return createClientComponentClient()
+}
 
 export type Sport = {
   id: number
@@ -35,6 +38,7 @@ export type Payment = {
 }
 
 export async function fetchSports(): Promise<Sport[]> {
+  const supabase = getSupabase()
   const { data, error } = await supabase
     .from('sports')
     .select('*')
@@ -49,6 +53,7 @@ export async function fetchSports(): Promise<Sport[]> {
 }
 
 export async function fetchAthletes(): Promise<Athlete[]> {
+  const supabase = getSupabase()
   const { data, error } = await supabase
     .from('athletes')
     .select('*')
@@ -63,6 +68,7 @@ export async function fetchAthletes(): Promise<Athlete[]> {
 }
 
 export async function fetchAthletesWithSport(): Promise<(Athlete & { sport: Sport })[]> {
+  const supabase = getSupabase()
   const { data, error } = await supabase
     .from('athletes')
     .select(`
@@ -80,6 +86,7 @@ export async function fetchAthletesWithSport(): Promise<(Athlete & { sport: Spor
 }
 
 export async function fetchPayments(): Promise<Payment[]> {
+  const supabase = getSupabase()
   const { data, error } = await supabase
     .from('payments')
     .select('*')
@@ -94,6 +101,7 @@ export async function fetchPayments(): Promise<Payment[]> {
 }
 
 export async function fetchPaymentsWithDetails(): Promise<Payment[]> {
+  const supabase = getSupabase()
   const { data, error } = await supabase
     .from('payments')
     .select(`
@@ -114,6 +122,7 @@ export async function fetchPaymentsWithDetails(): Promise<Payment[]> {
 }
 
 export async function fetchAthleteById(id: number): Promise<Athlete & { sport: Sport }> {
+  const supabase = getSupabase()
   const { data, error } = await supabase
     .from('athletes')
     .select(`
@@ -132,6 +141,7 @@ export async function fetchAthleteById(id: number): Promise<Athlete & { sport: S
 }
 
 export async function fetchPaymentById(id: number): Promise<Payment & { athlete: Athlete & { sport: Sport } }> {
+  const supabase = getSupabase()
   const { data, error } = await supabase
     .from('payments')
     .select(`
@@ -153,6 +163,7 @@ export async function fetchPaymentById(id: number): Promise<Payment & { athlete:
 }
 
 export async function fetchPaymentsByAthleteId(athleteId: number): Promise<Payment[]> {
+  const supabase = getSupabase()
   const { data, error } = await supabase
     .from('payments')
     .select('*')
@@ -168,6 +179,7 @@ export async function fetchPaymentsByAthleteId(athleteId: number): Promise<Payme
 }
 
 export async function createAthlete(athlete: Omit<Athlete, 'id' | 'created_at'>): Promise<Athlete> {
+  const supabase = getSupabase()
   const { data, error } = await supabase
     .from('athletes')
     .insert([athlete])
@@ -183,6 +195,7 @@ export async function createAthlete(athlete: Omit<Athlete, 'id' | 'created_at'>)
 }
 
 export async function createPayment(payment: Omit<Payment, 'id' | 'created_at'>): Promise<Payment> {
+  const supabase = getSupabase()
   const { data, error } = await supabase
     .from('payments')
     .insert([payment])
@@ -201,6 +214,7 @@ export async function updateAthlete(
   id: number, 
   updates: Partial<Omit<Athlete, 'id' | 'created_at'>>
 ): Promise<Athlete> {
+  const supabase = getSupabase()
   const { data, error } = await supabase
     .from('athletes')
     .update(updates)
@@ -220,6 +234,7 @@ export async function updatePayment(
   id: number, 
   updates: Partial<Omit<Payment, 'id' | 'created_at'>>
 ): Promise<Payment> {
+  const supabase = getSupabase()
   const { data, error } = await supabase
     .from('payments')
     .update(updates)
@@ -236,6 +251,7 @@ export async function updatePayment(
 }
 
 export async function deleteAthlete(id: number): Promise<void> {
+  const supabase = getSupabase()
   const { error } = await supabase
     .from('athletes')
     .delete()
@@ -248,6 +264,7 @@ export async function deleteAthlete(id: number): Promise<void> {
 }
 
 export async function deletePayment(id: number): Promise<void> {
+  const supabase = getSupabase()
   const { error } = await supabase
     .from('payments')
     .delete()
@@ -260,6 +277,7 @@ export async function deletePayment(id: number): Promise<void> {
 }
 
 export async function fetchDashboardStats() {
+  const supabase = getSupabase()
   // Get payment distribution by gender (for gender stats)
   const { data: genderDistribution, error: genderError } = await supabase.rpc('get_payment_distribution_by_gender')
   
@@ -368,6 +386,7 @@ export type PaymentTrend = {
 
 // Check Title IX compliance status
 export async function checkTitleIXCompliance(startDate?: string, endDate?: string) {
+  const supabase = getSupabase()
   const params: any = {}
   if (startDate) params.start_date = startDate
   if (endDate) params.end_date = endDate
@@ -384,6 +403,7 @@ export async function checkTitleIXCompliance(startDate?: string, endDate?: strin
 
 // Get payment distribution by gender
 export async function getPaymentDistributionByGender(startDate?: string, endDate?: string) {
+  const supabase = getSupabase()
   const params: any = {}
   if (startDate) params.start_date = startDate
   if (endDate) params.end_date = endDate
@@ -400,6 +420,7 @@ export async function getPaymentDistributionByGender(startDate?: string, endDate
 
 // Get payment distribution by sport
 export async function getPaymentDistributionBySport(startDate?: string, endDate?: string) {
+  const supabase = getSupabase()
   const params: any = {}
   if (startDate) params.start_date = startDate
   if (endDate) params.end_date = endDate
@@ -416,6 +437,7 @@ export async function getPaymentDistributionBySport(startDate?: string, endDate?
 
 // Get payment trends
 export async function getPaymentTrends(interval: string = 'monthly') {
+  const supabase = getSupabase()
   const { data, error } = await supabase.rpc('get_payment_trends', { interval_type: interval })
   
   if (error) {
@@ -442,6 +464,7 @@ export type DemoRequest = {
 export async function createDemoRequest(demoRequest: Omit<DemoRequest, 'id' | 'created_at'>): Promise<DemoRequest> {
   try {
     // Check if table exists by trying to get schema
+    const supabase = getSupabase()
     const { error: schemaError } = await supabase
       .from('demo_requests')
       .select('id')
@@ -517,6 +540,7 @@ export async function createDemoRequest(demoRequest: Omit<DemoRequest, 'id' | 'c
 export async function getDemoRequests(): Promise<DemoRequest[]> {
   try {
     // Check if table exists by trying to get schema
+    const supabase = getSupabase()
     const { error: schemaError } = await supabase
       .from('demo_requests')
       .select('id')

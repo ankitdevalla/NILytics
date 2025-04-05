@@ -1,9 +1,10 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
+import { signOut, getUser } from '@/lib/auth'
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: (
@@ -46,7 +47,74 @@ const navigation = [
 
 export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false)
+  const [isSigningOut, setIsSigningOut] = useState(false)
+  const [user, setUser] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
   const pathname = usePathname()
+
+  useEffect(() => {
+    const loadUser = async () => {
+      try {
+        const userData = await getUser()
+        setUser(userData)
+      } catch (error) {
+        console.error('Error fetching user:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadUser()
+  }, [])
+
+  const handleSignOut = async () => {
+    try {
+      setIsSigningOut(true)
+      await signOut()
+      // The redirect is handled in the signOut function
+    } catch (error) {
+      console.error('Error signing out:', error)
+      setIsSigningOut(false)
+    }
+  }
+
+  // Get user initials for the avatar
+  const getUserInitials = () => {
+    if (!user || !user.email) return 'U';
+    
+    // Try to get initials from user_metadata.name if it exists
+    if (user.user_metadata?.name) {
+      return user.user_metadata.name
+        .split(' ')
+        .map((n: string) => n[0])
+        .join('')
+        .toUpperCase()
+        .substring(0, 2);
+    }
+    
+    // Fallback to first letter of email
+    return user.email.charAt(0).toUpperCase();
+  }
+
+  // Get display name
+  const getDisplayName = () => {
+    if (!user) return '';
+    
+    if (user.user_metadata?.name) {
+      return user.user_metadata.name;
+    }
+    
+    if (user.email) {
+      return user.email.split('@')[0];
+    }
+    
+    return 'User';
+  }
+
+  // Get user email
+  const getUserEmail = () => {
+    return user?.email || '';
+  }
 
   return (
     <div 
@@ -120,22 +188,50 @@ export default function Sidebar() {
       </nav>
 
       {/* User profile */}
-      <div className={`p-4 border-t flex ${collapsed ? 'justify-center' : 'items-center'}`}>
-        {collapsed ? (
-          <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center">
-            <span className="text-xs font-medium text-gray-600">AD</span>
-          </div>
-        ) : (
-          <>
+      <div className="border-t">
+        <div className={`p-4 flex ${collapsed ? 'justify-center' : 'items-center'}`}>
+          {collapsed ? (
             <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center">
-              <span className="text-xs font-medium text-gray-600">AD</span>
+              <span className="text-xs font-medium text-gray-600">
+                {loading ? "..." : getUserInitials()}
+              </span>
             </div>
-            <div className="ml-3">
-              <p className="text-sm font-medium text-gray-700">Admin User</p>
-              <p className="text-xs text-gray-500">admin@nilytics.com</p>
-            </div>
-          </>
-        )}
+          ) : (
+            <>
+              <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center">
+                <span className="text-xs font-medium text-gray-600">
+                  {loading ? "..." : getUserInitials()}
+                </span>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm font-medium text-gray-700">
+                  {loading ? "Loading..." : getDisplayName()}
+                </p>
+                <p className="text-xs text-gray-500">
+                  {loading ? "..." : getUserEmail()}
+                </p>
+              </div>
+            </>
+          )}
+        </div>
+        
+        {/* Sign out button */}
+        <button 
+          onClick={handleSignOut}
+          disabled={isSigningOut}
+          className={`w-full text-left py-3 text-sm text-gray-700 hover:bg-gray-100 transition-colors border-t ${
+            collapsed 
+              ? 'flex justify-center px-4' 
+              : 'px-6'
+          } disabled:opacity-50`}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 001 1h12a1 1 0 001-1V4a1 1 0 00-1-1h-3a1 1 0 110-2h3a3 3 0 013 3v12a3 3 0 01-3 3H3a3 3 0 01-3-3V4a3 3 0 013-3h3a1 1 0 010 2H3zm10.657-1.657a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414l2.293 2.293V4a1 1 0 012 0v6.586l2.293-2.293z" clipRule="evenodd" transform="rotate(90, 10, 10)" />
+          </svg>
+          {!collapsed && (
+            <span className="ml-3">{isSigningOut ? 'Signing out...' : 'Sign out'}</span>
+          )}
+        </button>
       </div>
     </div>
   )

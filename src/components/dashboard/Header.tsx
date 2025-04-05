@@ -1,11 +1,30 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { signOut, getUser } from '@/lib/auth'
 
 export default function Header() {
   const [showNotifications, setShowNotifications] = useState(false)
   const [showUserMenu, setShowUserMenu] = useState(false)
+  const [isSigningOut, setIsSigningOut] = useState(false)
+  const [user, setUser] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const loadUser = async () => {
+      try {
+        const userData = await getUser()
+        setUser(userData)
+      } catch (error) {
+        console.error('Error fetching user:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadUser()
+  }, [])
 
   const toggleNotifications = () => {
     setShowNotifications(!showNotifications)
@@ -15,6 +34,51 @@ export default function Header() {
   const toggleUserMenu = () => {
     setShowUserMenu(!showUserMenu)
     if (showNotifications) setShowNotifications(false)
+  }
+
+  const handleSignOut = async () => {
+    try {
+      setIsSigningOut(true)
+      await signOut()
+      // The redirect is handled in the signOut function
+    } catch (error) {
+      console.error('Error signing out:', error)
+      setIsSigningOut(false)
+    }
+  }
+
+  // Get user initials for the avatar
+  const getUserInitials = () => {
+    if (!user || !user.email) return 'U';
+    
+    // Try to get initials from user_metadata.name if it exists
+    if (user.user_metadata?.name) {
+      return user.user_metadata.name
+        .split(' ')
+        .map((n: string) => n[0])
+        .join('')
+        .toUpperCase()
+        .substring(0, 2);
+    }
+    
+    // Fallback to first letter of email
+    return user.email.charAt(0).toUpperCase();
+  }
+
+  // Get display name
+  const getDisplayName = () => {
+    if (!user) return '';
+    
+    if (user.user_metadata?.name) {
+      return user.user_metadata.name;
+    }
+    
+    if (user.email) {
+      // Return the part before @ in the email
+      return user.email.split('@')[0];
+    }
+    
+    return 'User';
   }
 
   return (
@@ -97,9 +161,13 @@ export default function Header() {
               className="flex items-center space-x-2 focus:outline-none"
             >
               <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center">
-                <span className="text-xs font-medium text-gray-600">AD</span>
+                <span className="text-xs font-medium text-gray-600">
+                  {loading ? "..." : getUserInitials()}
+                </span>
               </div>
-              <span className="text-sm font-medium text-gray-700 hidden md:block">Admin</span>
+              <span className="text-sm font-medium text-gray-700 hidden md:block">
+                {loading ? "Loading..." : getDisplayName()}
+              </span>
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
               </svg>
@@ -115,9 +183,13 @@ export default function Header() {
                   Settings
                 </Link>
                 <div className="border-t border-gray-100 my-1"></div>
-                <Link href="/" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                  Sign out
-                </Link>
+                <button 
+                  onClick={handleSignOut}
+                  disabled={isSigningOut}
+                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 focus:outline-none disabled:opacity-50"
+                >
+                  {isSigningOut ? 'Signing out...' : 'Sign out'}
+                </button>
               </div>
             )}
           </div>

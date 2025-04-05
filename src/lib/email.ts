@@ -10,7 +10,7 @@ type EmailData = {
 };
 
 export async function sendEmail(data: EmailData): Promise<boolean> {
-  const apiKey = process.env.NEXT_PUBLIC_EMAIL_API_KEY;
+  const apiKey = process.env.MAILGUN_API_KEY;
   
   if (!apiKey) {
     console.error('Mailgun API key is not defined');

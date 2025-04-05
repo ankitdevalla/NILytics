@@ -15,6 +15,7 @@
     "@supabase/supabase-js": "^2.49.4",
     "@tanstack/react-table": "^8.21.2",
     "csv-parse": "^5.6.0",
+    "dotenv": "^16.4.7",
     "next": "^15.2.4",
     "node-fetch": "^2.7.0",
     "react": "^19.1.0",
