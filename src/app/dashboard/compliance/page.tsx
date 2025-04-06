@@ -30,14 +30,14 @@ const GENDER_COLORS = {
   Female: '#FF8042'
 };
 
-export default function CompliancePage() {
+export default function EquityInsightsPage() {
   const [complianceData, setComplianceData] = useState<TitleIXComplianceResult[]>([])
   const [genderDistribution, setGenderDistribution] = useState<PaymentDistributionByGender[]>([])
   const [sportDistribution, setSportDistribution] = useState<PaymentDistributionBySport[]>([])
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
   const [timeRange, setTimeRange] = useState<string>('year')
-  const [complianceScore, setComplianceScore] = useState<number>(0)
+  const [equityScore, setEquityScore] = useState<number>(0)
 
   // Format currency
   const formatCurrency = (amount: number): string => {
@@ -88,10 +88,10 @@ export default function CompliancePage() {
         setGenderDistribution(genderResults)
         setSportDistribution(sportResults)
         
-        // Calculate compliance score
-        calculateComplianceScore(complianceResults)
+        // Calculate equity score
+        calculateEquityScore(complianceResults)
       } catch (err) {
-        setError('Failed to load compliance data. Please try again later.')
+        setError('Failed to load gender equity data. Please try again later.')
         console.error(err)
       } finally {
         setLoading(false)
@@ -101,16 +101,23 @@ export default function CompliancePage() {
     loadData()
   }, [timeRange])
   
-  // Calculate overall compliance score
-  const calculateComplianceScore = (data: TitleIXComplianceResult[]) => {
+  // Calculate overall equity score
+  const calculateEquityScore = (data: TitleIXComplianceResult[]) => {
     if (!data || data.length === 0) {
-      setComplianceScore(0)
+      setEquityScore(0)
       return
     }
     
-    const compliantCount = data.filter(item => item.is_compliant).length
-    const score = (compliantCount / data.length) * 100
-    setComplianceScore(score)
+    // Calculate how close payment percentages are to athlete percentages
+    const totalDifference = data.reduce((sum, item) => {
+      const diff = Math.abs(item.payment_percentage - item.athlete_percentage)
+      return sum + diff
+    }, 0)
+    
+    // Calculate score (100% means perfect balance, 0% means maximum imbalance)
+    const maxDifference = data.length // theoretical maximum difference of 100% per gender
+    const score = (1 - Math.min(totalDifference, maxDifference) / maxDifference) * 100
+    setEquityScore(score)
   }
   
   // Prepare gender distribution data for charts
@@ -142,8 +149,8 @@ export default function CompliancePage() {
       }))
   }
   
-  // Prepare compliance data for visualization
-  const prepareComplianceData = () => {
+  // Prepare equity data for visualization
+  const prepareEquityData = () => {
     if (!complianceData || complianceData.length === 0) {
       return []
     }
@@ -152,81 +159,92 @@ export default function CompliancePage() {
       name: item.gender || 'Unknown',
       athletes: (item.athlete_percentage || 0) * 100,
       payments: (item.payment_percentage || 0) * 100,
-      compliant: item.is_compliant || false
+      balanced: Math.abs(item.payment_percentage - item.athlete_percentage) <= 0.05
     }))
   }
   
-  // Get compliance status and recommendations
-  const getComplianceStatus = () => {
-    if (complianceData.length === 0) return { status: 'Unknown', message: 'No data available' }
+  // Get equity status and insights
+  const getEquityStatus = () => {
+    if (complianceData.length === 0) return { status: 'No Data', message: 'No data available for analysis' }
     
-    const allCompliant = complianceData.every(item => item.is_compliant)
+    // Calculate the overall balance
+    const allBalanced = complianceData.every(item => 
+      Math.abs(item.payment_percentage - item.athlete_percentage) <= 0.05
+    )
     
-    if (allCompliant) {
+    if (allBalanced) {
       return { 
-        status: 'Compliant', 
-        message: 'Your NIL payment distribution is compliant with Title IX requirements.' 
+        status: 'Balanced', 
+        message: 'Your NIL payment distribution is well balanced with your athlete population distribution.' 
       }
     }
     
     // Find the most out-of-balance gender
-    const nonCompliant = complianceData.find(item => !item.is_compliant)
+    const mostImbalanced = [...complianceData].sort((a, b) => {
+      return Math.abs(b.payment_percentage - b.athlete_percentage) - 
+             Math.abs(a.payment_percentage - a.athlete_percentage)
+    })[0]
     
-    if (nonCompliant) {
-      const diff = Math.abs(nonCompliant.payment_percentage - nonCompliant.athlete_percentage)
+    if (mostImbalanced) {
+      const diff = Math.abs(mostImbalanced.payment_percentage - mostImbalanced.athlete_percentage)
+      const direction = mostImbalanced.payment_percentage > mostImbalanced.athlete_percentage ? 
+        'higher than' : 'lower than'
+      
       return {
-        status: 'Non-Compliant',
-        message: `Your NIL payment distribution for ${nonCompliant.gender} athletes is ${formatPercentage(diff)} off from their representation, which may not meet Title IX requirements.`
+        status: 'Opportunity for Balance',
+        message: `${mostImbalanced.gender} athletes receive ${formatPercentage(mostImbalanced.payment_percentage)} of payments, which is ${formatPercentage(diff)} ${direction} their representation in your athlete population.`
       }
     }
     
-    return { status: 'Unknown', message: 'Unable to determine compliance status.' }
+    return { status: 'Reviewing', message: 'Analyzing gender equity patterns in your data.' }
   }
   
-  // Generate specific recommendations
-  const getRecommendations = () => {
+  // Generate specific insights
+  const getInsights = () => {
     if (complianceData.length === 0) return []
     
-    const recommendations = []
-    const allCompliant = complianceData.every(item => item.is_compliant)
+    const insights = []
+    const allBalanced = complianceData.every(item => 
+      Math.abs(item.payment_percentage - item.athlete_percentage) <= 0.05
+    )
     
-    if (!allCompliant) {
+    if (!allBalanced) {
       // Find gender with lower payment percentage compared to athlete percentage
       const underrepresented = complianceData.find(
         item => item.payment_percentage < item.athlete_percentage
       )
       
       if (underrepresented) {
-        recommendations.push({
-          title: `Increase NIL opportunities for ${underrepresented.gender} athletes`,
-          description: `${underrepresented.gender} athletes represent ${formatPercentage(underrepresented.athlete_percentage)} of your athlete population but only receive ${formatPercentage(underrepresented.payment_percentage)} of NIL payments.`
+        insights.push({
+          title: `Opportunity Gap for ${underrepresented.gender} Athletes`,
+          description: `${underrepresented.gender} athletes represent ${formatPercentage(underrepresented.athlete_percentage)} of your athlete population but receive ${formatPercentage(underrepresented.payment_percentage)} of NIL payments.`
         })
       }
       
-      // Add recommendations based on sport distribution
+      // Add insights based on sport distribution
       if (sportDistribution.length > 0) {
         // Find sports that might be unbalanced
         const topSports = sportDistribution.sort((a, b) => b.total_amount - a.total_amount).slice(0, 3)
         
-        recommendations.push({
-          title: 'Review NIL distribution across sports',
-          description: `${topSports.map(s => s.sport_name).join(', ')} receive significantly more NIL payments than other sports. Consider promoting NIL opportunities in underrepresented sports.`
+        insights.push({
+          title: 'Sport-Specific Insights',
+          description: `${topSports.map(s => s.sport_name).join(', ')} receive significantly more NIL payments than other sports. Consider this information for resource allocation and strategic planning.`
         })
       }
     }
     
-    // Add general recommendations
-    recommendations.push({
-      title: 'Regular compliance monitoring',
-      description: 'Continue to monitor NIL payment distribution on a quarterly basis to ensure ongoing Title IX compliance.'
+    // Add general insights
+    insights.push({
+      title: 'Ongoing Monitoring',
+      description: 'Regular tracking of NIL payment distribution provides valuable data for future planning and strategic decision-making.'
     })
     
-    recommendations.push({
-      title: 'Document compliance efforts',
-      description: 'Maintain detailed records of all initiatives aimed at ensuring equitable NIL opportunities across all genders and sports.'
+    insights.push({
+      title: 'Transparency Opportunity',
+      description: 'Maintaining detailed records of payment distribution demonstrates your commitment to equitable opportunities and can be valuable for stakeholder communication.'
     })
     
-    return recommendations
+    return insights
   }
   
   // Custom tooltip for charts
@@ -247,9 +265,9 @@ export default function CompliancePage() {
     return null
   }
   
-  // Calculate compliance status
-  const complianceStatus = getComplianceStatus()
-  const recommendations = getRecommendations()
+  // Calculate equity status
+  const equityStatus = getEquityStatus()
+  const insights = getInsights()
 
   if (loading) {
     return (
@@ -280,9 +298,9 @@ export default function CompliancePage() {
     <div>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Title IX Compliance</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Gender Equity Insights</h1>
           <p className="mt-1 text-sm text-gray-500">
-            Analyze and monitor Title IX compliance for NIL payments
+            Track disparities, showcase progress, and prepare for future planning
           </p>
         </div>
         <div className="mt-4 sm:mt-0 flex items-center">
@@ -300,7 +318,7 @@ export default function CompliancePage() {
         </div>
       </div>
 
-      {/* Compliance Score Card */}
+      {/* Equity Score Card */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
         <div className="flex flex-col md:flex-row items-center">
           <div className="relative w-36 h-36 mb-4 md:mb-0 md:mr-6">
@@ -315,31 +333,31 @@ export default function CompliancePage() {
               <path
                 d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                 fill="none"
-                stroke={complianceScore >= 90 ? '#10B981' : complianceScore >= 70 ? '#FBBF24' : '#EF4444'}
+                stroke={equityScore >= 90 ? '#10B981' : equityScore >= 70 ? '#FBBF24' : '#EF4444'}
                 strokeWidth="3"
-                strokeDasharray={`${complianceScore}, 100`}
+                strokeDasharray={`${equityScore}, 100`}
                 className="animate-dash"
               />
               <text x="18" y="20.5" textAnchor="middle" fontSize="7" fill="#374151" fontWeight="bold">
-                {Math.round(complianceScore)}%
+                {Math.round(equityScore)}%
               </text>
             </svg>
           </div>
           <div className="flex-1">
             <div className="flex items-center mb-2">
-              <h3 className="text-lg font-bold text-gray-900 mr-2">Title IX Compliance Score</h3>
+              <h3 className="text-lg font-bold text-gray-900 mr-2">Payment Disparity Monitor</h3>
               <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                complianceScore >= 90 
+                equityScore >= 90 
                   ? 'bg-green-100 text-green-800' 
-                  : complianceScore >= 70 
+                  : equityScore >= 70 
                     ? 'bg-yellow-100 text-yellow-800' 
                     : 'bg-red-100 text-red-800'
               }`}>
-                {complianceStatus.status}
+                {equityStatus.status}
               </span>
             </div>
             <p className="text-sm text-gray-600 mb-4">
-              {complianceStatus.message}
+              {equityStatus.message}
             </p>
             <div className="mt-3 grid grid-cols-3 gap-4">
               <div className="border-r border-gray-200 pr-4">
@@ -357,8 +375,8 @@ export default function CompliancePage() {
                 </p>
               </div>
               <div className="pl-4">
-                <p className="text-sm font-medium text-gray-500">Compliance Target</p>
-                <p className="mt-1 text-lg font-semibold text-gray-900">±5% Balance</p>
+                <p className="text-sm font-medium text-gray-500">Balanced Target</p>
+                <p className="mt-1 text-lg font-semibold text-gray-900">±5% Difference</p>
               </div>
             </div>
           </div>
@@ -369,11 +387,11 @@ export default function CompliancePage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         {/* Gender Distribution Chart */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <h3 className="text-base font-medium text-gray-700 mb-4">Gender Distribution Analysis</h3>
+          <h3 className="text-base font-medium text-gray-700 mb-4">Gender Representation Analysis</h3>
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
-                data={prepareComplianceData()}
+                data={prepareEquityData()}
                 margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
               >
                 <CartesianGrid strokeDasharray="3 3" />
@@ -441,11 +459,11 @@ export default function CompliancePage() {
         </div>
       </div>
 
-      {/* Recommendations Section */}
+      {/* Insights Section */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
-        <h3 className="text-lg font-medium text-gray-700 mb-4">Recommendations to Improve Compliance</h3>
+        <h3 className="text-lg font-medium text-gray-700 mb-4">Strategic Insights</h3>
         <div className="space-y-4">
-          {recommendations.map((rec, index) => (
+          {insights.map((insight, index) => (
             <div key={index} className="flex space-x-3">
               <div className="flex-shrink-0">
                 <div className="flex items-center justify-center h-8 w-8 rounded-full bg-ncaa-blue text-white">
@@ -453,17 +471,17 @@ export default function CompliancePage() {
                 </div>
               </div>
               <div>
-                <h4 className="text-base font-medium text-gray-900">{rec.title}</h4>
-                <p className="mt-1 text-sm text-gray-500">{rec.description}</p>
+                <h4 className="text-base font-medium text-gray-900">{insight.title}</h4>
+                <p className="mt-1 text-sm text-gray-500">{insight.description}</p>
               </div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Action Plan Section */}
+      {/* Strategic Planning Section */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-        <h3 className="text-lg font-medium text-gray-700 mb-4">Title IX Compliance Action Plan</h3>
+        <h3 className="text-lg font-medium text-gray-700 mb-4">Equity Transparency Dashboard</h3>
         <div className="space-y-4">
           <div className="bg-blue-50 border-l-4 border-blue-400 p-4">
             <div className="flex">
@@ -473,48 +491,48 @@ export default function CompliancePage() {
                 </svg>
               </div>
               <div className="ml-3">
-                <h4 className="text-sm text-blue-800 font-medium">About Title IX Compliance</h4>
+                <h4 className="text-sm text-blue-800 font-medium">About Gender Equity in NIL</h4>
                 <p className="text-sm text-blue-700 mt-2">
-                  Title IX requires that NIL opportunities be made available to male and female student-athletes in a manner proportional to their participation. 
-                  This doesn't mean equal amounts, but rather proportional to the gender breakdown of your athletic program.
+                  Tracking gender equity in NIL deals can help institutions demonstrate their commitment to providing equal opportunities.
+                  This data is valuable for PR reporting, DEI benchmarking, and preparing for potential future regulatory changes.
                 </p>
               </div>
             </div>
           </div>
           
           <div className="bg-gray-50 p-4 rounded-lg">
-            <h4 className="font-medium text-gray-700 mb-2">Suggested Actions</h4>
+            <h4 className="font-medium text-gray-700 mb-2">Suggested Strategic Actions</h4>
             <ul className="space-y-2 text-sm text-gray-600">
               <li className="flex items-start">
                 <svg className="h-5 w-5 text-green-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <span>Conduct quarterly NIL opportunity audits across all sports and genders</span>
+                <span>Regular tracking of NIL activity across sports and genders for internal reporting</span>
               </li>
               <li className="flex items-start">
                 <svg className="h-5 w-5 text-green-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <span>Develop targeted NIL workshops for underrepresented gender or sports</span>
+                <span>Develop educational resources for student-athletes across all sports</span>
               </li>
               <li className="flex items-start">
                 <svg className="h-5 w-5 text-green-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <span>Create a formal NIL opportunity equalization program within the athletic department</span>
+                <span>Create showcase opportunities for student-athletes in less visible sports</span>
               </li>
               <li className="flex items-start">
                 <svg className="h-5 w-5 text-green-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <span>Document all compliance efforts and maintain records for potential audits</span>
+                <span>Document your institution's commitment to equal opportunity in NIL</span>
               </li>
             </ul>
           </div>
           
           <div className="mt-4 flex justify-end">
             <button className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-ncaa-blue hover:bg-ncaa-darkblue focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ncaa-blue">
-              Generate Compliance Report
+              Generate Equity Report
             </button>
           </div>
         </div>

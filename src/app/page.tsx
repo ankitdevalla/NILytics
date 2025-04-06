@@ -2,10 +2,10 @@ import React from 'react'
 import Navbar from '@/components/landing/Navbar'
 import Hero from '@/components/landing/Hero'
 import Features from '@/components/landing/Features'
-import Testimonials from '@/components/landing/Testimonials'
 import PricingTable from '@/components/landing/PricingTable'
 import CTA from '@/components/landing/CTA'
 import Footer from '@/components/landing/Footer'
+import FutureProof from '@/components/landing/FutureProof'
 
 export default function LandingPage() {
   return (
@@ -33,7 +33,7 @@ export default function LandingPage() {
         </div>
         
         <div className="relative mt-10 md:mt-16">
-          <Testimonials />
+          <FutureProof />
         </div>
         
         <div className="relative mt-10 md:mt-16">

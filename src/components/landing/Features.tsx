@@ -2,8 +2,8 @@ import React from 'react'
 
 const features = [
   {
-    title: 'Real-time Analytics',
-    description: 'Monitor payment distribution across sports and genders with instant visualizations and insights.',
+    title: 'Real-Time NIL & Revenue Sharing Analytics',
+    description: 'Monitor every NIL deal and revenue-sharing payment in real time — ensuring your department stays ahead of compliance requirements, state mandates, and best-practice standards.',
     icon: (
       <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
@@ -11,8 +11,8 @@ const features = [
     )
   },
   {
-    title: 'Title IX Compliance',
-    description: 'Automatic checks against Title IX requirements with alerts for potential compliance issues.',
+    title: 'Equity Transparency Dashboard',
+    description: 'Showcase your commitment to fairness with our customizable Equity Transparency Dashboard. Track payment disparities by gender and sport, even when Title IX isn\'t enforced, and use these insights to enhance your program\'s public image and athlete support.',
     icon: (
       <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
@@ -20,8 +20,8 @@ const features = [
     )
   },
   {
-    title: 'Comprehensive Reports',
-    description: 'Generate detailed reports for audits and compliance reviews with just a few clicks.',
+    title: 'Compliance & Audit-Readiness Tools',
+    description: 'Automated reporting, secure digital records, and audit trails help you stay prepared for evolving NCAA and state regulations.',
     icon: (
       <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -44,10 +44,10 @@ export default function Features() {
             Features
           </p>
           <h2 className="text-3xl md:text-4xl font-bold text-ncaa-darkblue mb-6">
-            NILytics: Powerful Tools for Your Compliance Needs
+            NILytics: Powerful Tools for the New Era
           </h2>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Everything you need to manage NIL payments and ensure Title IX compliance in one powerful analytics platform.
+            Everything you need to manage NIL payments and revenue sharing in one powerful analytics platform.
           </p>
         </div>
 

@@ -20,7 +20,7 @@ const pricingPlans = [
   },
   {
     name: 'Professional',
-    price: '$499',
+    price: '$299',
     period: '/month',
     description: 'Ideal for mid-sized athletic departments requiring more robust compliance tools.',
     features: [
@@ -29,29 +29,10 @@ const pricingPlans = [
       'Real-time alerts and notifications',
       'Custom reporting dashboards',
       'Advanced document management',
-      'Priority email support',
-      'Training for staff (2 sessions)'
+      'Priority email support'
     ],
     cta: 'Get started',
     highlighted: true
-  },
-  {
-    name: 'Enterprise',
-    price: 'Custom',
-    period: '',
-    description: 'Tailored solution for large athletic departments with complex compliance needs.',
-    features: [
-      'Complete compliance suite',
-      'Unlimited athlete profiles',
-      'Custom integration with existing systems',
-      'Advanced analytics and insights',
-      'Full document management system',
-      'Dedicated account manager',
-      'Unlimited training sessions',
-      'API access for custom development'
-    ],
-    cta: 'Contact us',
-    highlighted: false
   }
 ]
 
@@ -67,7 +48,7 @@ export default function PricingTable() {
             Choose the plan that works best for your institution's size and compliance needs.
           </p>
         </div>
-        <div className="mt-12 space-y-4 sm:mt-16 sm:grid sm:grid-cols-2 sm:gap-6 sm:space-y-0 lg:mx-auto lg:max-w-4xl xl:mx-0 xl:max-w-none xl:grid-cols-3">
+        <div className="mt-12 space-y-4 sm:mt-16 sm:grid sm:grid-cols-2 sm:gap-6 sm:space-y-0 lg:mx-auto lg:max-w-4xl xl:mx-auto xl:max-w-4xl xl:grid-cols-2">
           {pricingPlans.map((plan) => (
             <div 
               key={plan.name}

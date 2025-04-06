@@ -16,14 +16,11 @@ export default function Hero() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
               <div className="relative z-10">
                 <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-ncaa-darkblue mb-6 leading-tight">
-                  NILytics:<br />Smart NIL<br />compliance.
+                  Empower Your Athletic Department in the New Era of NIL & Revenue Sharing
                 </h1>
                 <div className="p-6 rounded-xl bg-gradient-to-r from-ncaa-blue to-ncaa-lightblue text-white shadow-lg mb-8">
                   <p className="text-xl font-medium mb-4">
-                    Data-driven NIL compliance for athletic departments
-                  </p>
-                  <p className="text-lg opacity-90">
-                    Join universities across the country in achieving Title IX compliance with our powerful analytics platform.
+                    Data-Driven Insights for Transparent Athlete Compensation and Equity — Today and Tomorrow
                   </p>
                 </div>
 
@@ -32,7 +29,7 @@ export default function Hero() {
                     href="#demo"
                     className="rounded-md bg-ncaa-blue px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-ncaa-darkblue focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ncaa-blue"
                   >
-                    Book a Demo
+                    Schedule a Demo
                   </a>
                   <a href="#features" className="text-sm font-semibold leading-6 text-gray-900">
                     Learn more <span aria-hidden="true">→</span>
@@ -80,24 +77,6 @@ export default function Hero() {
             </div>
           </div>
 
-          <div className="relative z-10 mt-14 pt-12 text-center border-t border-gray-100">
-            <p className="text-lg font-bold text-ncaa-darkblue mb-4">
-              Trusted by Athletic Departments Nationwide
-            </p>
-            <p className="text-base text-gray-600 mb-8">
-              Hear what athletic directors and compliance officers are saying about our platform.
-            </p>
-            <div className="flex flex-wrap justify-center gap-6 mb-6">
-              {Array(5).fill(0).map((_, i) => (
-                <div key={i} className="text-3xl text-ncaa-gold">★</div>
-              ))}
-            </div>
-            <p className="text-center text-gray-700 max-w-3xl mx-auto">
-              "NILytics has completely transformed how we manage athlete endorsements. The analytics and reporting features save us countless hours every month."
-            </p>
-            <p className="mt-4 font-medium text-ncaa-darkblue">Sarah Johnson</p>
-            <p className="text-sm text-gray-600">Athletic Director, Pacific University</p>
-          </div>
         </div>
       </div>
     </section>
