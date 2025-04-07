@@ -533,7 +533,7 @@ export default function AnalyticsPage() {
   };
 
   const getTopEarners = () => {
-    // Get payments filtered by the selected time period
+    // Get payments filtered by the selected time period and sport
     const filteredPayments = getFilteredPayments();
 
     // Create a map to store total payments by athlete
@@ -566,7 +566,7 @@ export default function AnalyticsPage() {
   };
 
   const getPaymentSources = () => {
-    // Get payments filtered by the selected time period
+    // Get payments filtered by the selected time period and sport
     const filteredPayments = getFilteredPayments();
 
     // Create a map to store payment data by source
