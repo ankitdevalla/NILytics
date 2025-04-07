@@ -1,168 +1,183 @@
-'use client'
+"use client";
 
-import React, { useState, useEffect, useMemo } from 'react'
-import Link from 'next/link'
-import { fetchPaymentsWithDetails, Payment, Athlete, Sport } from '@/lib/supabase'
-import AddPaymentModal from '@/components/payments/AddPaymentModal'
+import React, { useState, useEffect, useMemo } from "react";
+import Link from "next/link";
+import {
+  fetchPaymentsWithDetails,
+  Payment,
+  Athlete,
+  Sport,
+} from "@/lib/supabase";
+import AddPaymentModal from "@/components/payments/AddPaymentModal";
 
-type PaymentWithDetails = Payment & { athlete: Athlete & { sport: Sport } }
+type PaymentWithDetails = Payment & { athlete: Athlete & { sport: Sport } };
 
 export default function PaymentsPage() {
-  const [payments, setPayments] = useState<PaymentWithDetails[]>([])
-  const [loading, setLoading] = useState<boolean>(true)
-  const [error, setError] = useState<string | null>(null)
-  const [searchTerm, setSearchTerm] = useState<string>('')
-  const [activityTypeFilter, setActivityTypeFilter] = useState<string>('all')
-  const [sportFilter, setSportFilter] = useState<string>('all')
-  const [sortField, setSortField] = useState<string>('date')
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+  const [payments, setPayments] = useState<PaymentWithDetails[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [activityTypeFilter, setActivityTypeFilter] = useState<string>("all");
+  const [sportFilter, setSportFilter] = useState<string>("all");
+  const [sortField, setSortField] = useState<string>("date");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
-      setLoading(true)
-      setError('')
+      setLoading(true);
+      setError("");
       try {
-        const data = await fetchPaymentsWithDetails()
-        setPayments(data as PaymentWithDetails[])
+        const data = await fetchPaymentsWithDetails();
+        setPayments(data as PaymentWithDetails[]);
       } catch (err) {
-        setError('Failed to load payments. Please try again later.')
-        console.error(err)
+        setError("Failed to load payments. Please try again later.");
+        console.error(err);
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
 
-    fetchData()
-  }, [])
+    fetchData();
+  }, []);
 
   // Format currency
   const formatCurrency = (amount: number): string => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(amount)
-  }
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+    }).format(amount);
+  };
 
   // Format date
   const formatDate = (dateString: string): string => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    })
-  }
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
 
   // Get unique activity types from payment data
   const uniqueActivityTypes = React.useMemo(() => {
-    const activitySet = new Set(payments.map(payment => payment.activity_type))
-    return Array.from(activitySet).sort()
-  }, [payments])
+    const activitySet = new Set(
+      payments.map((payment) => payment.activity_type)
+    );
+    return Array.from(activitySet).sort();
+  }, [payments]);
 
   // Get unique sports from payment data
   const uniqueSports = React.useMemo(() => {
-    const sportSet = new Set(payments.map(payment => payment.athlete?.sport?.name || 'Unknown'))
-    return Array.from(sportSet).sort()
-  }, [payments])
+    const sportSet = new Set(
+      payments.map((payment) => payment.athlete?.sport?.name || "Unknown")
+    );
+    return Array.from(sportSet).sort();
+  }, [payments]);
 
   // Filter and sort payments
   const filteredPayments = React.useMemo(() => {
     return payments
-      .filter(payment => {
+      .filter((payment) => {
         // Search term filter
-        const matchesSearch = 
-          payment.athlete?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        const matchesSearch =
+          payment.athlete?.name
+            .toLowerCase()
+            .includes(searchTerm.toLowerCase()) ||
           payment.source.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          payment.activity_type.toLowerCase().includes(searchTerm.toLowerCase())
-        
+          payment.activity_type
+            .toLowerCase()
+            .includes(searchTerm.toLowerCase());
+
         // Activity type filter
-        const matchesActivityType = 
-          activityTypeFilter === 'all' || 
-          payment.activity_type === activityTypeFilter
-        
+        const matchesActivityType =
+          activityTypeFilter === "all" ||
+          payment.activity_type === activityTypeFilter;
+
         // Sport filter
-        const matchesSport = 
-          sportFilter === 'all' || 
-          payment.athlete?.sport?.name === sportFilter
-        
-        return matchesSearch && matchesActivityType && matchesSport
+        const matchesSport =
+          sportFilter === "all" || payment.athlete?.sport?.name === sportFilter;
+
+        return matchesSearch && matchesActivityType && matchesSport;
       })
       .sort((a, b) => {
-        let valueA, valueB
+        let valueA, valueB;
 
         // Determine which field to sort by
         switch (sortField) {
-          case 'date':
-            valueA = new Date(a.date).getTime()
-            valueB = new Date(b.date).getTime()
-            break
-          case 'amount':
-            valueA = a.amount
-            valueB = b.amount
-            break
-          case 'athlete':
-            valueA = a.athlete?.name || ''
-            valueB = b.athlete?.name || ''
-            break
-          case 'activity':
-            valueA = a.activity_type
-            valueB = b.activity_type
-            break
+          case "date":
+            valueA = new Date(a.date).getTime();
+            valueB = new Date(b.date).getTime();
+            break;
+          case "amount":
+            valueA = a.amount;
+            valueB = b.amount;
+            break;
+          case "athlete":
+            valueA = a.athlete?.name || "";
+            valueB = b.athlete?.name || "";
+            break;
+          case "activity":
+            valueA = a.activity_type;
+            valueB = b.activity_type;
+            break;
           default:
-            valueA = new Date(a.date).getTime()
-            valueB = new Date(b.date).getTime()
+            valueA = new Date(a.date).getTime();
+            valueB = new Date(b.date).getTime();
         }
 
         // Compare the values
-        if (valueA < valueB) return sortDirection === 'asc' ? -1 : 1
-        if (valueA > valueB) return sortDirection === 'asc' ? 1 : -1
-        return 0
-      })
-  }, [payments, searchTerm, activityTypeFilter, sportFilter, sortField, sortDirection])
+        if (valueA < valueB) return sortDirection === "asc" ? -1 : 1;
+        if (valueA > valueB) return sortDirection === "asc" ? 1 : -1;
+        return 0;
+      });
+  }, [
+    payments,
+    searchTerm,
+    activityTypeFilter,
+    sportFilter,
+    sortField,
+    sortDirection,
+  ]);
 
   // Calculate total payments amount
   const totalAmount = React.useMemo(() => {
-    return filteredPayments.reduce((sum, payment) => sum + payment.amount, 0)
-  }, [filteredPayments])
+    return filteredPayments.reduce((sum, payment) => sum + payment.amount, 0);
+  }, [filteredPayments]);
 
   // Handle sort toggle
   const toggleSort = (field: string) => {
     if (sortField === field) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
     } else {
-      setSortField(field)
-      setSortDirection('desc')
+      setSortField(field);
+      setSortDirection("desc");
     }
-  }
+  };
 
   // Render sort indicator
   const renderSortIndicator = (field: string) => {
-    if (sortField !== field) return null
-    
-    return (
-      <span className="ml-1">
-        {sortDirection === 'asc' ? '▲' : '▼'}
-      </span>
-    )
-  }
+    if (sortField !== field) return null;
+
+    return <span className="ml-1">{sortDirection === "asc" ? "▲" : "▼"}</span>;
+  };
 
   const handlePaymentAdded = (newPayment: Payment) => {
     // Fetch the updated list of payments to ensure we have all the data including relations
     fetchPaymentsWithDetails()
-      .then(data => {
-        setPayments(data as PaymentWithDetails[])
+      .then((data) => {
+        setPayments(data as PaymentWithDetails[]);
       })
-      .catch(err => {
-        console.error('Error refreshing payments after addition:', err)
-      })
-  }
+      .catch((err) => {
+        console.error("Error refreshing payments after addition:", err);
+      });
+  };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-ncaa-blue"></div>
       </div>
-    )
+    );
   }
 
   if (error) {
@@ -170,8 +185,16 @@ export default function PaymentsPage() {
       <div className="bg-red-50 border border-red-200 text-red-800 rounded-lg p-4">
         <div className="flex">
           <div className="flex-shrink-0">
-            <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+            <svg
+              className="h-5 w-5 text-red-400"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+            >
+              <path
+                fillRule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                clipRule="evenodd"
+              />
             </svg>
           </div>
           <div className="ml-3">
@@ -179,7 +202,7 @@ export default function PaymentsPage() {
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -196,8 +219,19 @@ export default function PaymentsPage() {
             onClick={() => setIsAddModalOpen(true)}
             className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-ncaa-blue hover:bg-ncaa-darkblue focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ncaa-blue"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="-ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="-ml-1 mr-2 h-5 w-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 4v16m8-8H4"
+              />
             </svg>
             Add Payment
           </button>
@@ -208,22 +242,30 @@ export default function PaymentsPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
           <h3 className="text-sm font-medium text-gray-500">Total Payments</h3>
-          <p className="mt-1 text-2xl font-bold text-gray-900">{filteredPayments.length}</p>
+          <p className="mt-1 text-2xl font-bold text-gray-900">
+            {filteredPayments.length}
+          </p>
         </div>
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
           <h3 className="text-sm font-medium text-gray-500">Total Amount</h3>
-          <p className="mt-1 text-2xl font-bold text-gray-900">{formatCurrency(totalAmount)}</p>
+          <p className="mt-1 text-2xl font-bold text-gray-900">
+            {formatCurrency(totalAmount)}
+          </p>
         </div>
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
           <h3 className="text-sm font-medium text-gray-500">Average Payment</h3>
           <p className="mt-1 text-2xl font-bold text-gray-900">
-            {formatCurrency(filteredPayments.length ? totalAmount / filteredPayments.length : 0)}
+            {formatCurrency(
+              filteredPayments.length
+                ? totalAmount / filteredPayments.length
+                : 0
+            )}
           </p>
         </div>
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
           <h3 className="text-sm font-medium text-gray-500">Unique Athletes</h3>
           <p className="mt-1 text-2xl font-bold text-gray-900">
-            {new Set(filteredPayments.map(p => p.athlete_id)).size}
+            {new Set(filteredPayments.map((p) => p.athlete_id)).size}
           </p>
         </div>
       </div>
@@ -233,7 +275,12 @@ export default function PaymentsPage() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {/* Search */}
           <div className="col-span-1 md:col-span-2">
-            <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-1">Search</label>
+            <label
+              htmlFor="search"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
+              Search
+            </label>
             <div className="relative">
               <input
                 type="text"
@@ -244,8 +291,16 @@ export default function PaymentsPage() {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <svg className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
+                <svg
+                  className="h-5 w-5 text-gray-400"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
+                    clipRule="evenodd"
+                  />
                 </svg>
               </div>
             </div>
@@ -253,7 +308,12 @@ export default function PaymentsPage() {
 
           {/* Activity Type Filter */}
           <div>
-            <label htmlFor="activity-filter" className="block text-sm font-medium text-gray-700 mb-1">Activity Type</label>
+            <label
+              htmlFor="activity-filter"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
+              Activity Type
+            </label>
             <select
               id="activity-filter"
               className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-ncaa-blue focus:border-ncaa-blue sm:text-sm rounded-md"
@@ -262,14 +322,21 @@ export default function PaymentsPage() {
             >
               <option value="all">All Activities</option>
               {uniqueActivityTypes.map((type) => (
-                <option key={type} value={type}>{type}</option>
+                <option key={type} value={type}>
+                  {type}
+                </option>
               ))}
             </select>
           </div>
 
           {/* Sport Filter */}
           <div>
-            <label htmlFor="sport-filter" className="block text-sm font-medium text-gray-700 mb-1">Sport</label>
+            <label
+              htmlFor="sport-filter"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
+              Sport
+            </label>
             <select
               id="sport-filter"
               className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-ncaa-blue focus:border-ncaa-blue sm:text-sm rounded-md"
@@ -278,7 +345,9 @@ export default function PaymentsPage() {
             >
               <option value="all">All Sports</option>
               {uniqueSports.map((sport) => (
-                <option key={sport} value={sport}>{sport}</option>
+                <option key={sport} value={sport}>
+                  {sport}
+                </option>
               ))}
             </select>
           </div>
@@ -294,31 +363,31 @@ export default function PaymentsPage() {
                 <th
                   scope="col"
                   className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  onClick={() => toggleSort('date')}
+                  onClick={() => toggleSort("date")}
                 >
                   <div className="flex items-center">
                     Date
-                    {renderSortIndicator('date')}
+                    {renderSortIndicator("date")}
                   </div>
                 </th>
                 <th
                   scope="col"
                   className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  onClick={() => toggleSort('athlete')}
+                  onClick={() => toggleSort("athlete")}
                 >
                   <div className="flex items-center">
                     Athlete
-                    {renderSortIndicator('athlete')}
+                    {renderSortIndicator("athlete")}
                   </div>
                 </th>
                 <th
                   scope="col"
                   className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  onClick={() => toggleSort('activity')}
+                  onClick={() => toggleSort("activity")}
                 >
                   <div className="flex items-center">
                     Activity
-                    {renderSortIndicator('activity')}
+                    {renderSortIndicator("activity")}
                   </div>
                 </th>
                 <th
@@ -330,11 +399,11 @@ export default function PaymentsPage() {
                 <th
                   scope="col"
                   className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  onClick={() => toggleSort('amount')}
+                  onClick={() => toggleSort("amount")}
                 >
                   <div className="flex items-center justify-end">
                     Amount
-                    {renderSortIndicator('amount')}
+                    {renderSortIndicator("amount")}
                   </div>
                 </th>
                 <th
@@ -348,7 +417,10 @@ export default function PaymentsPage() {
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredPayments.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-4 text-center text-sm text-gray-500">
+                  <td
+                    colSpan={6}
+                    className="px-6 py-4 text-center text-sm text-gray-500"
+                  >
                     No payments found matching your criteria
                   </td>
                 </tr>
@@ -360,19 +432,24 @@ export default function PaymentsPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        <div className="text-sm font-medium text-gray-900">
-                          {payment.athlete?.name || 'Unknown'}
-                        </div>
-                        <span className={`ml-2 px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          payment.athlete?.gender.toLowerCase() === 'male' 
-                            ? 'bg-blue-100 text-blue-800' 
-                            : 'bg-pink-100 text-pink-800'
-                        }`}>
-                          {payment.athlete?.gender || 'Unknown'}
+                        <Link
+                          href={`/athletes/${payment.athlete_id}`}
+                          className="text-sm font-medium text-gray-900 hover:text-ncaa-blue"
+                        >
+                          {payment.athlete?.name || "Unknown"}
+                        </Link>
+                        <span
+                          className={`ml-2 px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                            payment.athlete?.gender.toLowerCase() === "male"
+                              ? "bg-blue-100 text-blue-800"
+                              : "bg-pink-100 text-pink-800"
+                          }`}
+                        >
+                          {payment.athlete?.gender || "Unknown"}
                         </span>
                       </div>
                       <div className="text-sm text-gray-500">
-                        {payment.athlete?.sport?.name || 'Unknown Sport'}
+                        {payment.athlete?.sport?.name || "Unknown Sport"}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -385,10 +462,16 @@ export default function PaymentsPage() {
                       {formatCurrency(payment.amount)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <Link href={`/dashboard/payments/${payment.id}`} className="text-ncaa-blue hover:text-ncaa-darkblue mr-4">
+                      <Link
+                        href={`/dashboard/payments/${payment.id}`}
+                        className="text-ncaa-blue hover:text-ncaa-darkblue mr-4"
+                      >
                         View
                       </Link>
-                      <Link href={`/dashboard/payments/${payment.id}/edit`} className="text-ncaa-blue hover:text-ncaa-darkblue">
+                      <Link
+                        href={`/dashboard/payments/${payment.id}/edit`}
+                        className="text-ncaa-blue hover:text-ncaa-darkblue"
+                      >
                         Edit
                       </Link>
                     </td>
@@ -401,13 +484,21 @@ export default function PaymentsPage() {
         <div className="bg-gray-50 px-4 py-3 border-t border-gray-200 sm:px-6">
           <div className="flex items-center justify-between">
             <div className="text-sm text-gray-700">
-              Showing <span className="font-medium">{filteredPayments.length}</span> of <span className="font-medium">{payments.length}</span> payments
+              Showing{" "}
+              <span className="font-medium">{filteredPayments.length}</span> of{" "}
+              <span className="font-medium">{payments.length}</span> payments
             </div>
             <div className="flex-1 flex justify-end">
-              <button className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+              <button
+                className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled
+              >
                 Previous
               </button>
-              <button className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+              <button
+                className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled
+              >
                 Next
               </button>
             </div>
@@ -416,11 +507,11 @@ export default function PaymentsPage() {
       </div>
 
       {/* Add Payment Modal */}
-      <AddPaymentModal 
+      <AddPaymentModal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         onPaymentAdded={handlePaymentAdded}
       />
     </div>
-  )
-} 
+  );
+}
