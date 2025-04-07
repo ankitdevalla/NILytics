@@ -18,6 +18,7 @@ import {
   Pie,
   Cell,
 } from "recharts";
+import { Athiti } from "next/font/google";
 
 // Define types for dashboard stats
 type PaymentStats = {
@@ -148,8 +149,8 @@ export default function DashboardPage() {
       stats?.sportStats?.slice(0, 5)?.map((item) => ({
         name: item.sport_name || "Unknown",
         amount: parseFloat((item.total_amount || 0).toString()),
-        athletes: item.athlete_count || 0,
-      })) || []
+        athlete_count: item.athlete_count,
+      }))
     );
   };
 
@@ -292,12 +293,21 @@ export default function DashboardPage() {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" />
                   <YAxis
+                    yAxisId="left"
                     tickFormatter={(value) => `$${value.toLocaleString()}`}
+                  />
+                  <YAxis
+                    yAxisId="right"
+                    orientation="right"
+                    tickFormatter={(value) => Math.round(value).toString()}
+                    domain={[0, 'dataMax']}
+                    allowDecimals={false}
+                    interval={0}
                   />
                   <Tooltip content={<CustomTooltip />} />
                   <Legend />
-                  <Bar dataKey="amount" name="Total Amount" fill="#8884d8" />
-                  <Bar dataKey="athletes" name="Athlete Count" fill="#82ca9d" />
+                  <Bar yAxisId="left" dataKey="amount" name="Total Amount" fill="#8884d8" />
+                  <Bar yAxisId="right" dataKey="athlete_count" name="Athlete Count" fill="#82ca9d" />
                 </BarChart>
               </ResponsiveContainer>
             </div>
