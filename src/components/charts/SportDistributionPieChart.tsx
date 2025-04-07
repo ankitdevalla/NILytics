@@ -8,14 +8,22 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-interface SportPaymentData {
+interface SportData {
   sport_name: string;
   total_amount: number;
   payment_count: number;
+  sport_id: string;
+}
+
+interface Payment {
+  athlete_id: string;
+  sport_id: string;
+  amount: number;
 }
 
 interface SportDistributionPieChartProps {
-  sportData: SportPaymentData[];
+  sportData: SportData[];
+  filteredPayments: Payment[];
 }
 
 // Color palette for the pie chart segments
@@ -34,6 +42,7 @@ const COLORS = [
 
 const SportDistributionPieChart: React.FC<SportDistributionPieChartProps> = ({
   sportData,
+  filteredPayments,
 }) => {
   // Calculate the total amount across all sports
   const totalAmount = sportData.reduce(
