@@ -1,8 +1,11 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
-import { Athlete, Sport, fetchAthletesWithSport } from '@/lib/supabase'
+import { Athlete, Sport, fetchAthletesWithSport, deleteAthleteWithPayments } from '@/lib/supabase'
+import AddAthleteModal from '@/components/athletes/AddAthleteModal'
+import DeleteAthleteConfirmationModal from '@/components/athletes/DeleteAthleteConfirmationModal'
+import { getSupabase } from '@/lib/supabase'
 
 export default function AthletesPage() {
   const [athletes, setAthletes] = useState<(Athlete & { sport: Sport })[]>([])
@@ -13,6 +16,10 @@ export default function AthletesPage() {
   const [sportFilter, setSportFilter] = useState<string>('all')
   const [sortField, setSortField] = useState<string>('name')
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+  const [athleteToDelete, setAthleteToDelete] = useState<Athlete | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   useEffect(() => {
     const loadData = async () => {
@@ -108,6 +115,54 @@ export default function AthletesPage() {
     )
   }
 
+  const handleAthleteAdded = (newAthlete: Athlete) => {
+    // Fetch the updated list of athletes to ensure we have all the data including relations
+    fetchAthletesWithSport()
+      .then(data => {
+        setAthletes(data)
+      })
+      .catch(err => {
+        console.error('Error refreshing athletes after addition:', err)
+      })
+  }
+
+  const handleDeleteClick = (athlete: Athlete) => {
+    setAthleteToDelete(athlete)
+    setIsDeleteModalOpen(true)
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!athleteToDelete) return
+    
+    setIsDeleting(true)
+    try {
+      console.log(`Attempting to delete athlete: ${JSON.stringify(athleteToDelete)}`)
+      
+      // Use the utility function instead of manual deletion logic
+      await deleteAthleteWithPayments(athleteToDelete.id);
+      
+      console.log("Athlete and associated payments deleted successfully");
+      
+      // Refresh the athletes list
+      const refreshedAthletes = await fetchAthletesWithSport();
+      setAthletes(refreshedAthletes);
+      
+      // Close the delete modal
+      setIsDeleteModalOpen(false);
+    } catch (error) {
+      console.error('Error deleting athlete:', error);
+      setError('Failed to delete athlete. Please try again later.');
+    } finally {
+      setIsDeleting(false);
+      setAthleteToDelete(null);
+    }
+  }
+
+  const handleDeleteCancel = () => {
+    setIsDeleteModalOpen(false)
+    setAthleteToDelete(null)
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
@@ -142,8 +197,100 @@ export default function AthletesPage() {
             Manage and view all athletes in your program
           </p>
         </div>
-        <div className="mt-4 sm:mt-0">
-          <button className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-ncaa-blue hover:bg-ncaa-darkblue focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ncaa-blue">
+        <div className="mt-4 sm:mt-0 flex space-x-2">
+          {/* Debug button - remove this after debugging */}
+          {athletes.length > 0 && (
+            <button
+              onClick={async () => {
+                if (athletes.length === 0) return;
+                const athlete = athletes[0];
+                console.log(`Debug: Attempting deletion of athlete ${athlete.id}`);
+                
+                try {
+                  const supabase = getSupabase();
+                  
+                  // 1. First check if the athlete exists
+                  console.log("1. Checking if athlete exists...");
+                  const { data: athleteData, error: fetchError } = await supabase
+                    .from('athletes')
+                    .select('*')
+                    .eq('id', athlete.id)
+                    .single();
+                  
+                  if (fetchError) {
+                    console.error("Error fetching athlete:", fetchError);
+                    alert(`Error fetching athlete: ${fetchError.message}`);
+                    return;
+                  }
+                  
+                  console.log("Athlete exists:", athleteData);
+                  
+                  // 2. Check for related payments
+                  console.log("2. Checking for related payments...");
+                  const { data: paymentData, error: paymentFetchError } = await supabase
+                    .from('payments')
+                    .select('id, amount, date')
+                    .eq('athlete_id', athlete.id.toString());
+                  
+                  if (paymentFetchError) {
+                    console.error("Error fetching payments:", paymentFetchError);
+                    alert(`Error fetching payments: ${paymentFetchError.message}`);
+                    return;
+                  }
+                  
+                  console.log(`Found ${paymentData.length} related payments:`, paymentData);
+                  
+                  // 3. Delete payments first
+                  if (paymentData.length > 0) {
+                    console.log("3. Deleting payments...");
+                    const { error: deletePaymentsError } = await supabase
+                      .from('payments')
+                      .delete()
+                      .eq('athlete_id', athlete.id.toString());
+                    
+                    if (deletePaymentsError) {
+                      console.error("Error deleting payments:", deletePaymentsError);
+                      alert(`Error deleting payments: ${deletePaymentsError.message}`);
+                      return;
+                    }
+                    
+                    console.log("Payments deleted successfully");
+                  }
+                  
+                  // 4. Delete athlete
+                  console.log("4. Deleting athlete...");
+                  const { error: deleteAthleteError } = await supabase
+                    .from('athletes')
+                    .delete()
+                    .eq('id', athlete.id);
+                  
+                  if (deleteAthleteError) {
+                    console.error("Error deleting athlete:", deleteAthleteError);
+                    alert(`Error deleting athlete: ${deleteAthleteError.message}`);
+                    return;
+                  }
+                  
+                  console.log("Athlete deleted successfully");
+                  alert("Delete operation completed successfully");
+                  
+                  // 5. Refresh the list
+                  const data = await fetchAthletesWithSport();
+                  setAthletes(data);
+                  
+                } catch (err) {
+                  console.error("Full error details:", err);
+                  alert(`Delete exception: ${err instanceof Error ? err.message : 'Unknown error'}`);
+                }
+              }}
+              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+            >
+              Debug Delete
+            </button>
+          )}
+          <button 
+            onClick={() => setIsAddModalOpen(true)}
+            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-ncaa-blue hover:bg-ncaa-darkblue focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ncaa-blue"
+          >
             <svg xmlns="http://www.w3.org/2000/svg" className="-ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
@@ -271,7 +418,7 @@ export default function AthletesPage() {
                         </div>
                         <div className="ml-4">
                           <div className="text-sm font-medium text-gray-900">{athlete.name}</div>
-                          <div className="text-sm text-gray-500">ID: {athlete.id.substring(0, 8)}...</div>
+                          <div className="text-sm text-gray-500">ID: {athlete.id.toString().substring(0, 8)}...</div>
                         </div>
                       </div>
                     </td>
@@ -291,9 +438,15 @@ export default function AthletesPage() {
                       <Link href={`/dashboard/athletes/${athlete.id}`} className="text-ncaa-blue hover:text-ncaa-darkblue mr-4">
                         View
                       </Link>
-                      <Link href={`/dashboard/athletes/${athlete.id}/edit`} className="text-ncaa-blue hover:text-ncaa-darkblue">
+                      <Link href={`/dashboard/athletes/${athlete.id}/edit`} className="text-ncaa-blue hover:text-ncaa-darkblue mr-4">
                         Edit
                       </Link>
+                      <button
+                        onClick={() => handleDeleteClick(athlete)}
+                        className="text-red-600 hover:text-red-900"
+                      >
+                        Delete
+                      </button>
                     </td>
                   </tr>
                 ))
@@ -317,6 +470,22 @@ export default function AthletesPage() {
           </div>
         </div>
       </div>
+
+      {/* Add Athlete Modal */}
+      <AddAthleteModal 
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onAthleteAdded={handleAthleteAdded}
+      />
+
+      {/* Delete Athlete Confirmation Modal */}
+      <DeleteAthleteConfirmationModal
+        isOpen={isDeleteModalOpen}
+        athlete={athleteToDelete}
+        onClose={handleDeleteCancel}
+        onConfirm={handleDeleteConfirm}
+        isDeleting={isDeleting}
+      />
     </div>
   )
 } 

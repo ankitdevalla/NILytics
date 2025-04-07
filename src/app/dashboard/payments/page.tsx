@@ -1,8 +1,9 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { fetchPaymentsWithDetails, Payment, Athlete, Sport } from '@/lib/supabase'
+import AddPaymentModal from '@/components/payments/AddPaymentModal'
 
 type PaymentWithDetails = Payment & { athlete: Athlete & { sport: Sport } }
 
@@ -15,22 +16,24 @@ export default function PaymentsPage() {
   const [sportFilter, setSportFilter] = useState<string>('all')
   const [sortField, setSortField] = useState<string>('date')
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false)
 
   useEffect(() => {
-    const loadData = async () => {
+    const fetchData = async () => {
+      setLoading(true)
+      setError('')
       try {
-        setLoading(true)
         const data = await fetchPaymentsWithDetails()
-        setPayments(data)
+        setPayments(data as PaymentWithDetails[])
       } catch (err) {
-        setError('Failed to load payment data. Please try again later.')
+        setError('Failed to load payments. Please try again later.')
         console.error(err)
       } finally {
         setLoading(false)
       }
     }
 
-    loadData()
+    fetchData()
   }, [])
 
   // Format currency
@@ -143,6 +146,17 @@ export default function PaymentsPage() {
     )
   }
 
+  const handlePaymentAdded = (newPayment: Payment) => {
+    // Fetch the updated list of payments to ensure we have all the data including relations
+    fetchPaymentsWithDetails()
+      .then(data => {
+        setPayments(data as PaymentWithDetails[])
+      })
+      .catch(err => {
+        console.error('Error refreshing payments after addition:', err)
+      })
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
@@ -178,7 +192,10 @@ export default function PaymentsPage() {
           </p>
         </div>
         <div className="mt-4 sm:mt-0">
-          <button className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-ncaa-blue hover:bg-ncaa-darkblue focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ncaa-blue">
+          <button
+            onClick={() => setIsAddModalOpen(true)}
+            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-ncaa-blue hover:bg-ncaa-darkblue focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ncaa-blue"
+          >
             <svg xmlns="http://www.w3.org/2000/svg" className="-ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
@@ -397,6 +414,13 @@ export default function PaymentsPage() {
           </div>
         </div>
       </div>
+
+      {/* Add Payment Modal */}
+      <AddPaymentModal 
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onPaymentAdded={handlePaymentAdded}
+      />
     </div>
   )
 } 

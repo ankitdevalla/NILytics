@@ -11,7 +11,7 @@ export const getSupabase = () => {
 }
 
 export type Sport = {
-  id: number
+  id: string
   name: string
   created_at: string
 }
@@ -21,14 +21,14 @@ export type Athlete = {
   name: string
   gender: string
   year: string
-  sport_id: number
+  sport_id: string
   created_at: string
   sport?: Sport
 }
 
 export type Payment = {
   id: number
-  athlete_id: number
+  athlete_id: string
   amount: number
   date: string
   source: string
@@ -50,6 +50,52 @@ export async function fetchSports(): Promise<Sport[]> {
   }
 
   return data || []
+}
+
+export async function createSport(name: string): Promise<Sport> {
+  const supabase = getSupabase()
+  const { data, error } = await supabase
+    .from('sports')
+    .insert([{ name }])
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error creating sport:', error)
+    throw new Error('Failed to create sport')
+  }
+
+  return data
+}
+
+export async function updateSport(id: number, name: string): Promise<Sport> {
+  const supabase = getSupabase()
+  const { data, error } = await supabase
+    .from('sports')
+    .update({ name })
+    .eq('id', id)
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error updating sport:', error)
+    throw new Error('Failed to update sport')
+  }
+
+  return data
+}
+
+export async function deleteSport(id: number): Promise<void> {
+  const supabase = getSupabase()
+  const { error } = await supabase
+    .from('sports')
+    .delete()
+    .eq('id', id)
+
+  if (error) {
+    console.error('Error deleting sport:', error)
+    throw new Error('Failed to delete sport')
+  }
 }
 
 export async function fetchAthletes(): Promise<Athlete[]> {
@@ -252,14 +298,64 @@ export async function updatePayment(
 
 export async function deleteAthlete(id: number): Promise<void> {
   const supabase = getSupabase()
+  console.log(`Attempting to delete athlete with ID: ${id} (${typeof id})`)
+  
   const { error } = await supabase
     .from('athletes')
     .delete()
     .eq('id', id)
-
+  
   if (error) {
     console.error(`Error deleting athlete ID ${id}:`, error)
-    throw new Error(`Failed to delete athlete ID ${id}`)
+    throw new Error(`Failed to delete athlete ID ${id}: ${error.message}`)
+  }
+  
+  console.log(`Successfully deleted athlete with ID ${id}`)
+}
+
+export async function deleteAthleteWithPayments(id: number): Promise<void> {
+  const supabase = getSupabase()
+  console.log(`Attempting to delete athlete with ID: ${id} and associated payments using direct SQL`)
+  
+  try {
+    // Use RPC to execute a SQL command that will handle the deletion in the correct order
+    const { error } = await supabase.rpc('delete_athlete_with_payments', { p_athlete_id: id })
+    
+    if (error) {
+      console.error(`Error in RPC delete_athlete_with_payments for ID ${id}:`, error)
+      
+      // Fallback to sequential delete if RPC doesn't exist
+      console.log('Fallback: Attempting sequential delete')
+      
+      // First delete all payments (convert ID to string)
+      const { error: paymentsError } = await supabase
+        .from('payments')
+        .delete()
+        .eq('athlete_id', id.toString())
+      
+      if (paymentsError) {
+        console.error(`Error deleting payments for athlete ID ${id}:`, paymentsError)
+        throw new Error(`Failed to delete payments for athlete ID ${id}: ${paymentsError.message}`)
+      }
+      
+      console.log(`Successfully deleted payments for athlete ID ${id}`)
+      
+      // Then try to delete the athlete
+      const { error: athleteError } = await supabase
+        .from('athletes')
+        .delete()
+        .eq('id', id)
+      
+      if (athleteError) {
+        console.error(`Error deleting athlete ID ${id}:`, athleteError)
+        throw new Error(`Failed to delete athlete ID ${id}: ${athleteError.message}`)
+      }
+    } else {
+      console.log(`Successfully deleted athlete with ID ${id} and all payments via RPC`)
+    }
+  } catch (err) {
+    console.error(`Unexpected error in deleteAthleteWithPayments for ID ${id}:`, err)
+    throw err
   }
 }
 

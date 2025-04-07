@@ -49,7 +49,9 @@ export default function EquityInsightsPage() {
   
   // Format percentage
   const formatPercentage = (value: number): string => {
-    return `${(value * 100).toFixed(1)}%`
+    // Values are already in percentage form (0-100 range)
+    // Just ensure 1 decimal place
+    return `${Number(value).toFixed(1)}%`;
   }
 
   // Load data based on selected time range
@@ -109,14 +111,16 @@ export default function EquityInsightsPage() {
     }
     
     // Calculate how close payment percentages are to athlete percentages
+    // Values are already in 0-100 range from SQL
     const totalDifference = data.reduce((sum, item) => {
       const diff = Math.abs(item.payment_percentage - item.athlete_percentage)
       return sum + diff
     }, 0)
     
     // Calculate score (100% means perfect balance, 0% means maximum imbalance)
-    const maxDifference = data.length // theoretical maximum difference of 100% per gender
-    const score = (1 - Math.min(totalDifference, maxDifference) / maxDifference) * 100
+    // Maximum theoretical difference would be 100% per gender
+    const maxDifference = data.length * 100 
+    const score = Math.max(0, Math.min(100, (1 - Math.min(totalDifference, maxDifference) / maxDifference) * 100))
     setEquityScore(score)
   }
   
@@ -126,10 +130,14 @@ export default function EquityInsightsPage() {
       return []
     }
     
+    // Calculate total amount for percentage calculation
+    const totalAmount = genderDistribution.reduce((sum, item) => sum + item.total_amount, 0);
+    
     return genderDistribution.map(item => ({
       name: item.gender,
       value: item.total_amount,
-      count: item.payment_count
+      count: item.payment_count,
+      percentage: totalAmount > 0 ? (item.total_amount / totalAmount) * 100 : 0
     }))
   }
   
@@ -155,21 +163,27 @@ export default function EquityInsightsPage() {
       return []
     }
     
-    return complianceData.map(item => ({
-      name: item.gender || 'Unknown',
-      athletes: (item.athlete_percentage || 0) * 100,
-      payments: (item.payment_percentage || 0) * 100,
-      balanced: Math.abs(item.payment_percentage - item.athlete_percentage) <= 0.05
-    }))
+    return complianceData.map(item => {
+      // Values are already in 0-100 range from SQL, just format to 1 decimal place
+      const athletePercentage = Number(item.athlete_percentage).toFixed(1);
+      const paymentPercentage = Number(item.payment_percentage).toFixed(1);
+        
+      return {
+        name: item.gender || 'Unknown',
+        athletes: Number(athletePercentage),
+        payments: Number(paymentPercentage),
+        balanced: Math.abs(item.payment_percentage - item.athlete_percentage) <= 5 // 5 percentage points
+      };
+    });
   }
   
   // Get equity status and insights
   const getEquityStatus = () => {
     if (complianceData.length === 0) return { status: 'No Data', message: 'No data available for analysis' }
     
-    // Calculate the overall balance
+    // Calculate the overall balance - values are already percentages (0-100 range)
     const allBalanced = complianceData.every(item => 
-      Math.abs(item.payment_percentage - item.athlete_percentage) <= 0.05
+      Math.abs(item.payment_percentage - item.athlete_percentage) <= 5
     )
     
     if (allBalanced) {
@@ -255,8 +269,9 @@ export default function EquityInsightsPage() {
           <p className="font-medium">{label}</p>
           {payload.map((entry: any, index: number) => (
             <p key={index} style={{ color: entry.color }}>
-              {entry.name}: {entry.name.includes('amount') ? formatCurrency(entry.value) : 
-                entry.name === 'athletes' || entry.name === 'payments' ? `${entry.value.toFixed(1)}%` : entry.value}
+              {`${entry.name}: ${entry.name.includes('athletes') || entry.name.includes('payments') ? 
+                `${Number(entry.value).toFixed(1)}%` : 
+                entry.name.includes('amount') ? formatCurrency(entry.value) : entry.value}`}
             </p>
           ))}
         </div>
@@ -396,7 +411,11 @@ export default function EquityInsightsPage() {
               >
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" />
-                <YAxis label={{ value: 'Percentage (%)', angle: -90, position: 'insideLeft' }} />
+                <YAxis 
+                  label={{ value: 'Percentage (%)', angle: -90, position: 'insideLeft' }}
+                  domain={[0, 100]}
+                  tickCount={6}
+                />
                 <Tooltip content={<CustomTooltip />} />
                 <Legend />
                 <Bar name="% of Athletes" dataKey="athletes" fill="#8884d8" />
@@ -430,7 +449,17 @@ export default function EquityInsightsPage() {
                     />
                   ))}
                 </Pie>
-                <Tooltip formatter={(value: any) => formatCurrency(value)} />
+                <Tooltip 
+                  formatter={(value: any, name: any, props: any) => {
+                    try {
+                      // Format percentage with just 1 decimal place
+                      const percentage = Number(props.payload.percentage || 0).toFixed(1);
+                      return [`${formatCurrency(value)} (${percentage}%)`, name];
+                    } catch (error) {
+                      return [formatCurrency(value), name];
+                    }
+                  }} 
+                />
                 <Legend />
               </PieChart>
             </ResponsiveContainer>
