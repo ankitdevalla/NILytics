@@ -20,8 +20,14 @@ interface Athlete {
   id: string;
   name: string;
   gender: string;
-  sport: string;
+  sport_id: string;
   // Add other athlete fields as needed
+}
+
+// Define Sport type
+interface Sport {
+  id: string;
+  name: string;
 }
 
 // Chart placeholder component
@@ -192,6 +198,7 @@ export default function AnalyticsPage() {
   const supabase = createClientComponentClient();
   const [payments, setPayments] = useState<Payment[]>([]);
   const [athletes, setAthletes] = useState<Athlete[]>([]);
+  const [sports, setSports] = useState<Sport[]>([]);
   const [loading, setLoading] = useState(true);
   const [timePeriod, setTimePeriod] = useState<string>("30days");
 
@@ -221,8 +228,16 @@ export default function AnalyticsPage() {
 
         if (athletesError) throw athletesError;
 
+        // Fetch sports
+        const { data: sportsData, error: sportsError } = await supabase
+          .from("sports")
+          .select("*");
+
+        if (sportsError) throw sportsError;
+
         setPayments(paymentsData || []);
         setAthletes(athletesData || []);
+        setSports(sportsData || []);
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {
@@ -452,36 +467,40 @@ export default function AnalyticsPage() {
     // Create a map to store payment data by sport
     const sportMap: Record<
       string,
-      { total_amount: number; payment_count: number }
+      { total_amount: number; payment_count: number; sport_name: string }
     > = {};
 
-    // Create a map of athlete IDs to their sport
+    // Create a map of athlete IDs to their sport_id
     const athleteSportMap: Record<string, string> = {};
     athletes.forEach((athlete) => {
-      athleteSportMap[athlete.id] = athlete.sport;
+      athleteSportMap[athlete.id] = athlete.sport_id;
     });
 
     // Process each filtered payment
     filteredPayments.forEach((payment) => {
-      // Get sport using athlete_id
-      const sport = athleteSportMap[payment.athlete_id] || "Unknown";
+      // Get sport_id using athlete_id
+      const sportId = athleteSportMap[payment.athlete_id];
+      if (!sportId) return; // Skip if no sport_id found
 
       // Initialize sport entry if it doesn't exist
-      if (!sportMap[sport]) {
-        sportMap[sport] = {
+      if (!sportMap[sportId]) {
+        // Find the sport name from the sports array
+        const sport = sports.find((s) => s.id === sportId);
+        sportMap[sportId] = {
           total_amount: 0,
           payment_count: 0,
+          sport_name: sport?.name || "Unknown Sport",
         };
       }
 
       // Update sport data
-      sportMap[sport].total_amount += payment.amount;
-      sportMap[sport].payment_count += 1;
+      sportMap[sportId].total_amount += payment.amount;
+      sportMap[sportId].payment_count += 1;
     });
 
     // Convert map to array format required by SportDistributionPieChart
-    return Object.entries(sportMap).map(([sport, data]) => ({
-      sport_name: sport,
+    return Object.values(sportMap).map((data) => ({
+      sport_name: data.sport_name,
       total_amount: data.total_amount,
       payment_count: data.payment_count,
     }));

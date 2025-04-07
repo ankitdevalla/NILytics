@@ -1,12 +1,12 @@
-import React from 'react';
+import React from "react";
 import {
   PieChart,
   Pie,
   Cell,
   Tooltip,
   Legend,
-  ResponsiveContainer
-} from 'recharts';
+  ResponsiveContainer,
+} from "recharts";
 
 interface SportPaymentData {
   sport_name: string;
@@ -19,44 +19,61 @@ interface SportDistributionPieChartProps {
 }
 
 // Color palette for the pie chart segments
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658', '#8dd1e1', '#a4de6c', '#d0ed57'];
+const COLORS = [
+  "#0088FE",
+  "#00C49F",
+  "#FFBB28",
+  "#FF8042",
+  "#8884d8",
+  "#82ca9d",
+  "#ffc658",
+  "#8dd1e1",
+  "#a4de6c",
+  "#d0ed57",
+];
 
-const SportDistributionPieChart: React.FC<SportDistributionPieChartProps> = ({ sportData }) => {
+const SportDistributionPieChart: React.FC<SportDistributionPieChartProps> = ({
+  sportData,
+}) => {
   // Calculate the total amount across all sports
-  const totalAmount = sportData.reduce((sum, item) => sum + item.total_amount, 0);
-  
+  const totalAmount = sportData.reduce(
+    (sum, item) => sum + item.total_amount,
+    0
+  );
+
   // Process the data to calculate accurate percentages
-  const chartData = sportData.map(sport => {
+  const chartData = sportData.map((sport) => {
     // Calculate percentage with 2 decimal places
-    const percentage = totalAmount > 0 ? (sport.total_amount / totalAmount) * 100 : 0;
-    
+    const percentage =
+      totalAmount > 0 ? (sport.total_amount / totalAmount) * 100 : 0;
+
     return {
       name: sport.sport_name,
       value: sport.total_amount,
       percentage: percentage.toFixed(2),
-      count: sport.payment_count
+      count: sport.payment_count,
     };
   });
 
   // Sort data by value in descending order
   chartData.sort((a, b) => b.value - a.value);
-  
+
   // Format currency for tooltip
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
       minimumFractionDigits: 2,
-      maximumFractionDigits: 2
+      maximumFractionDigits: 2,
     }).format(value);
   };
 
   // Custom tooltip content
-  const CustomTooltip = ({ 
-    active, 
-    payload 
-  }: { 
-    active?: boolean; 
+  const CustomTooltip = ({
+    active,
+    payload,
+  }: {
+    active?: boolean;
     payload?: Array<{ payload: any }>;
   }) => {
     if (active && payload && payload.length) {
@@ -75,7 +92,7 @@ const SportDistributionPieChart: React.FC<SportDistributionPieChartProps> = ({ s
 
   // Create a custom label formatter for the legend
   const formatLegendText = (value: string) => {
-    const item = chartData.find(d => d.name === value);
+    const item = chartData.find((d) => d.name === value);
     return `${value} (${item?.percentage}%)`;
   };
 
@@ -94,9 +111,9 @@ const SportDistributionPieChart: React.FC<SportDistributionPieChartProps> = ({ s
             nameKey="name"
           >
             {chartData.map((entry, index) => (
-              <Cell 
-                key={`cell-${index}`} 
-                fill={COLORS[index % COLORS.length]} 
+              <Cell
+                key={`cell-${index}`}
+                fill={COLORS[index % COLORS.length]}
               />
             ))}
           </Pie>
