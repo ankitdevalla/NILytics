@@ -524,24 +524,26 @@ export default function AthletesPage() {
                       {athlete.sport?.name || "Unknown"}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <Link
-                        href={`/athletes/${athlete.id}`}
-                        className="text-ncaa-blue hover:text-ncaa-darkblue mr-4"
-                      >
-                        View
-                      </Link>
-                      <Link
-                        href={`/dashboard/athletes/${athlete.id}/edit`}
-                        className="text-ncaa-blue hover:text-ncaa-darkblue mr-4"
-                      >
-                        Edit
-                      </Link>
-                      <button
-                        onClick={() => handleDeleteClick(athlete)}
-                        className="text-red-600 hover:text-red-900"
-                      >
-                        Delete
-                      </button>
+                      <div className="flex justify-end space-x-2">
+                        <Link
+                          href={`/athletes/${athlete.id}`}
+                          className="text-ncaa-blue hover:text-ncaa-darkblue"
+                        >
+                          View
+                        </Link>
+                        <Link
+                          href={`/dashboard/athletes/${athlete.id}`}
+                          className="text-ncaa-blue hover:text-ncaa-darkblue"
+                        >
+                          Edit
+                        </Link>
+                        <button
+                          onClick={() => handleDeleteClick(athlete)}
+                          className="text-red-600 hover:text-red-900"
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
