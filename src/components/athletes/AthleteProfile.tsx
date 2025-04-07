@@ -215,9 +215,9 @@ export default function AthleteProfile({ athleteId }: AthleteProfileProps) {
     const filteredPayments = getFilteredPayments(payments);
 
     return (
-      <div className="space-y-4">
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="space-y-6">
+        <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-200">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* Activity Type Filter */}
             <div>
               <label
@@ -242,14 +242,14 @@ export default function AthleteProfile({ athleteId }: AthleteProfileProps) {
             </div>
 
             {/* Summary Cards */}
-            <div className="col-span-2 grid grid-cols-2 gap-4">
-              <div className="bg-gray-50 p-4 rounded-lg">
+            <div className="col-span-2 grid grid-cols-2 gap-6">
+              <div className="bg-gray-50 p-6 rounded-lg">
                 <p className="text-sm text-gray-600">Total Payments</p>
                 <p className="text-2xl font-semibold mt-1">
                   {filteredPayments.length}
                 </p>
               </div>
-              <div className="bg-gray-50 p-4 rounded-lg">
+              <div className="bg-gray-50 p-6 rounded-lg">
                 <p className="text-sm text-gray-600">Total Amount</p>
                 <p className="text-2xl font-semibold mt-1">
                   {formatCurrency(calculateTotal(filteredPayments))}
@@ -259,84 +259,47 @@ export default function AthleteProfile({ athleteId }: AthleteProfileProps) {
           </div>
         </div>
 
-        <Card>
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow className="hover:bg-transparent">
-                  <TableHead
-                    className="cursor-pointer hover:bg-gray-50 transition-colors w-[140px]"
-                    onClick={() => toggleSort("date")}
-                  >
-                    <div className="flex items-center">
-                      Date
-                      {renderSortIndicator("date")}
-                    </div>
-                  </TableHead>
-                  <TableHead
-                    className="cursor-pointer hover:bg-gray-50 transition-colors"
-                    onClick={() => toggleSort("activity")}
-                  >
-                    <div className="flex items-center">
-                      Activity
-                      {renderSortIndicator("activity")}
-                    </div>
-                  </TableHead>
-                  <TableHead
-                    className="cursor-pointer hover:bg-gray-50 transition-colors"
-                    onClick={() => toggleSort("source")}
-                  >
-                    <div className="flex items-center">
-                      Source
-                      {renderSortIndicator("source")}
-                    </div>
-                  </TableHead>
-                  <TableHead
-                    className="text-right cursor-pointer hover:bg-gray-50 transition-colors w-[140px]"
-                    onClick={() => toggleSort("amount")}
-                  >
-                    <div className="flex items-center justify-end">
-                      Amount
-                      {renderSortIndicator("amount")}
-                    </div>
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredPayments.length === 0 ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={4}
-                      className="h-32 text-center text-muted-foreground"
-                    >
-                      <div className="flex flex-col items-center justify-center">
-                        <p className="text-sm">
-                          No payments found for this period
-                        </p>
-                        <Button variant="ghost" className="mt-2">
-                          Add a payment
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredPayments.map((payment) => (
-                    <TableRow key={payment.id} className="hover:bg-gray-50">
-                      <TableCell className="font-medium">
-                        {formatDate(payment.date)}
-                      </TableCell>
-                      <TableCell>{payment.activity_type}</TableCell>
-                      <TableCell>{payment.source}</TableCell>
-                      <TableCell className="text-right font-medium">
-                        {formatCurrency(payment.amount)}
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th
+                  scope="col"
+                  className="px-8 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >
+                  Date
+                </th>
+                <th
+                  scope="col"
+                  className="px-8 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >
+                  Activity Type
+                </th>
+                <th
+                  scope="col"
+                  className="px-8 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >
+                  Amount
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {filteredPayments.map((payment) => (
+                <tr key={payment.id} className="hover:bg-gray-50">
+                  <td className="px-8 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {formatDate(payment.date)}
+                  </td>
+                  <td className="px-8 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {payment.activity_type}
+                  </td>
+                  <td className="px-8 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {formatCurrency(payment.amount)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     );
   };

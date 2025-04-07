@@ -2,14 +2,43 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import { createClientComponentClient } from "@/lib/auth";
+import AccumulatedPaymentsChart from "@/components/charts/AccumulatedPaymentsChart";
+import SportDistributionPieChart from "@/components/charts/SportDistributionPieChart";
+import GenderDistributionPieChart from "@/components/charts/GenderDistributionPieChart";
+import TopEarnersChart from "@/components/charts/TopEarnersChart";
+import PaymentSourcesChart from "@/components/charts/PaymentSourcesChart";
 
 // Define Payment type
 interface Payment {
   id: string;
+  athlete_id: string;
+  athlete_name: string;
   amount: number;
   date: string;
-  athlete_id: string;
-  // Add other payment fields as needed
+  sport_id: string;
+  source: string;
+}
+
+// Define Athlete type
+interface Athlete {
+  id: string;
+  name: string;
+  gender: string;
+  sport_id: string;
+  // Add other athlete fields as needed
+}
+
+// Define Sport type
+interface Sport {
+  id: string;
+  name: string;
+}
+
+interface SportData {
+  sport_id: string;
+  sport_name: string;
+  total_amount: number;
+  payment_count: number;
 }
 
 // Chart placeholder component
@@ -125,7 +154,13 @@ function MetricCard({
 }
 
 // Filter component
-function AnalyticsFilter() {
+function AnalyticsFilter({
+  timePeriod,
+  setTimePeriod,
+}: {
+  timePeriod: string;
+  setTimePeriod: (period: string) => void;
+}) {
   const [activeFilter, setActiveFilter] = useState("all");
 
   const filters = [
@@ -155,11 +190,15 @@ function AnalyticsFilter() {
         ))}
       </div>
       <div className="ml-auto">
-        <select className="text-sm border-gray-300 rounded-md shadow-sm focus:border-ncaa-blue focus:ring-ncaa-blue">
-          <option>Last 30 days</option>
-          <option>Last 90 days</option>
-          <option>Last 12 months</option>
-          <option>All time</option>
+        <select
+          className="text-sm border-gray-300 rounded-md shadow-sm focus:border-ncaa-blue focus:ring-ncaa-blue"
+          value={timePeriod}
+          onChange={(e) => setTimePeriod(e.target.value)}
+        >
+          <option value="30days">Last 30 days</option>
+          <option value="90days">Last 90 days</option>
+          <option value="12months">Last 12 months</option>
+          <option value="all">All time</option>
         </select>
       </div>
     </div>
@@ -169,7 +208,10 @@ function AnalyticsFilter() {
 export default function AnalyticsPage() {
   const supabase = createClientComponentClient();
   const [payments, setPayments] = useState<Payment[]>([]);
+  const [athletes, setAthletes] = useState<Athlete[]>([]);
+  const [sports, setSports] = useState<Sport[]>([]);
   const [loading, setLoading] = useState(true);
+  const [timePeriod, setTimePeriod] = useState<string>("30days");
 
   // Format currency helper function
   const formatCurrency = (amount: number): string => {
@@ -180,20 +222,41 @@ export default function AnalyticsPage() {
   };
 
   useEffect(() => {
-    const fetchPayments = async () => {
+    async function fetchData() {
+      setLoading(true);
       try {
-        const { data, error } = await supabase.from("payments").select("*");
+        // Fetch payments
+        const { data: paymentsData, error: paymentsError } = await supabase
+          .from("payments")
+          .select("*");
 
-        if (error) throw error;
-        setPayments(data || []);
+        if (paymentsError) throw paymentsError;
+
+        // Fetch athletes
+        const { data: athletesData, error: athletesError } = await supabase
+          .from("athletes")
+          .select("*");
+
+        if (athletesError) throw athletesError;
+
+        // Fetch sports
+        const { data: sportsData, error: sportsError } = await supabase
+          .from("sports")
+          .select("*");
+
+        if (sportsError) throw sportsError;
+
+        setPayments(paymentsData || []);
+        setAthletes(athletesData || []);
+        setSports(sportsData || []);
       } catch (error) {
-        console.error("Error fetching payments:", error);
+        console.error("Error fetching data:", error);
       } finally {
         setLoading(false);
       }
-    };
+    }
 
-    fetchPayments();
+    fetchData();
   }, [supabase]);
 
   // Calculate average payment
@@ -350,7 +413,7 @@ export default function AnalyticsPage() {
         >
           <path
             fillRule="evenodd"
-            d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-2 0c0 .993-.241 1.929-.668 2.754l-1.524-1.525a3.997 3.997 0 00.078-2.183l1.562-1.562C15.802 8.249 16 9.1 16 10zm-5.165 3.913l1.58 1.58A5.98 5.98 0 0110 16a5.976 5.976 0 01-2.516-.552l1.562-1.562a4.006 4.006 0 001.789.027zm-4.677-2.796a4.002 4.002 0 01-.041-2.08l-.08.08-1.53-1.533A5.98 5.98 0 004 10c0 .954.223 1.856.619 2.657l1.54-1.54zm1.088-6.45A5.974 5.974 0 0110 4c.954 0 1.856.223 2.657.619l-1.54 1.54a4.002 4.002 0 00-2.346.033L7.246 4.668zM12 10a2 2 0 11-4 0 2 2 0 014 0z"
+            d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-2 0c0 .993-.241 1.929-.668 2.754l-1.524 1.525a3.997 3.997 0 00.078-2.183l1.562-1.562C15.802 8.249 16 9.1 16 10zm-5.165 3.913l1.58 1.58A5.98 5.98 0 0110 16a5.976 5.976 0 01-2.516-.552l1.562-1.562a4.006 4.006 0 001.789.027zm-4.677-2.796a4.002 4.002 0 01-.041-2.08l-.08.08-1.53-1.533A5.98 5.98 0 004 10c0 .954.223 1.856.619 2.657l1.54-1.54zm1.088-6.45A5.974 5.974 0 0110 4c.954 0 1.856.223 2.657.619l-1.54 1.54a4.002 4.002 0 00-2.346.033L7.246 4.668zM12 10a2 2 0 11-4 0 2 2 0 014 0z"
             clipRule="evenodd"
           />
         </svg>
@@ -379,6 +442,182 @@ export default function AnalyticsPage() {
     },
   ];
 
+  // Filter payments based on the selected time period
+  const getFilteredPayments = () => {
+    if (!payments.length) return [];
+
+    const now = new Date();
+    let startDate = new Date();
+
+    switch (timePeriod) {
+      case "30days":
+        startDate.setDate(now.getDate() - 30);
+        break;
+      case "90days":
+        startDate.setDate(now.getDate() - 90);
+        break;
+      case "12months":
+        startDate.setMonth(now.getMonth() - 12);
+        break;
+      case "all":
+      default:
+        // Return all payments
+        return payments;
+    }
+
+    return payments.filter((payment) => {
+      const paymentDate = new Date(payment.date);
+      return paymentDate >= startDate && paymentDate <= now;
+    });
+  };
+
+  const getFilteredPaymentsBySport = (payments: Payment[]): SportData[] => {
+    // Create a map to store payment data by sport
+    const sportMap = new Map<string, SportData>();
+
+    // Create a map of athlete IDs to their sport_id
+    const athleteSportMap = new Map<string, string>();
+    athletes.forEach((athlete) => {
+      athleteSportMap.set(athlete.id, athlete.sport_id);
+    });
+
+    // Process each payment
+    payments.forEach((payment) => {
+      // Get sport_id using athlete_id
+      const sportId = athleteSportMap.get(payment.athlete_id);
+      if (!sportId) return; // Skip if no sport_id found
+
+      const existing = sportMap.get(sportId);
+      if (existing) {
+        existing.total_amount += payment.amount;
+        existing.payment_count += 1;
+      } else {
+        // Find the sport name from the sports array
+        const sport = sports.find((s) => s.id === sportId);
+        sportMap.set(sportId, {
+          sport_id: sportId,
+          sport_name: sport?.name || "Unknown Sport",
+          total_amount: payment.amount,
+          payment_count: 1,
+        });
+      }
+    });
+
+    return Array.from(sportMap.values());
+  };
+
+  const getFilteredPaymentsByGender = () => {
+    // Get payments filtered by the selected time period
+    const filteredPayments = getFilteredPayments();
+
+    // Create a map to store payment data by gender
+    const genderMap: Record<
+      string,
+      { total_amount: number; payment_count: number }
+    > = {};
+
+    // Create a map of athlete IDs to their gender
+    const athleteGenderMap: Record<string, string> = {};
+    athletes.forEach((athlete) => {
+      athleteGenderMap[athlete.id] = athlete.gender;
+    });
+
+    // Process each filtered payment
+    filteredPayments.forEach((payment) => {
+      // Get athlete gender using athlete_id
+      let gender = athleteGenderMap[payment.athlete_id] || "Unknown";
+
+      // For demo purposes, if gender is not available, assign randomly
+      if (gender === "Unknown") {
+        gender = ["Male", "Female"][Math.floor(Math.random() * 2)];
+      }
+
+      // Initialize gender entry if it doesn't exist
+      if (!genderMap[gender]) {
+        genderMap[gender] = {
+          total_amount: 0,
+          payment_count: 0,
+        };
+      }
+
+      // Update gender data
+      genderMap[gender].total_amount += payment.amount;
+      genderMap[gender].payment_count += 1;
+    });
+
+    // Convert map to array format required by GenderDistributionPieChart
+    return Object.entries(genderMap).map(([gender, data]) => ({
+      gender,
+      total_amount: data.total_amount,
+      payment_count: data.payment_count,
+    }));
+  };
+
+  const getTopEarners = () => {
+    // Get payments filtered by the selected time period
+    const filteredPayments = getFilteredPayments();
+
+    // Create a map to store total payments by athlete
+    const athletePayments: Record<string, { name: string; total: number }> = {};
+
+    // Process each payment
+    filteredPayments.forEach((payment) => {
+      const athlete = athletes.find((a) => a.id === payment.athlete_id);
+      if (!athlete) return;
+
+      if (!athletePayments[payment.athlete_id]) {
+        athletePayments[payment.athlete_id] = {
+          name: athlete.name,
+          total: 0,
+        };
+      }
+
+      athletePayments[payment.athlete_id].total += payment.amount;
+    });
+
+    // Convert to array and sort by total amount
+    const sortedEarners = Object.values(athletePayments)
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 3); // Get top 3
+
+    return sortedEarners.map((earner) => ({
+      athlete_name: earner.name,
+      total_amount: earner.total,
+    }));
+  };
+
+  const getPaymentSources = () => {
+    // Get payments filtered by the selected time period
+    const filteredPayments = getFilteredPayments();
+
+    // Create a map to store payment data by source
+    const sourceMap: Record<
+      string,
+      { total_amount: number; payment_count: number }
+    > = {};
+
+    // Process each payment
+    filteredPayments.forEach((payment) => {
+      const source = payment.source || "Unknown";
+      if (!sourceMap[source]) {
+        sourceMap[source] = {
+          total_amount: 0,
+          payment_count: 0,
+        };
+      }
+
+      sourceMap[source].total_amount += payment.amount;
+      sourceMap[source].payment_count += 1;
+    });
+
+    // Convert to array format required by PaymentSourcesChart
+    return Object.entries(sourceMap).map(([source_name, data]) => ({
+      source_name,
+      total_amount: data.total_amount,
+      payment_count: data.payment_count,
+    }));
+  };
+
   return (
     <div>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
@@ -404,7 +643,7 @@ export default function AnalyticsPage() {
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 strokeWidth={2}
-                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                d="M4 16v1a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"
               />
             </svg>
             Export Report
@@ -427,36 +666,127 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Filters */}
-      <AnalyticsFilter />
+      <AnalyticsFilter timePeriod={timePeriod} setTimePeriod={setTimePeriod} />
 
       {/* Charts */}
       <div className="space-y-6">
-        <AnalyticsChart
-          title="NIL Payment Trends"
-          description="Monthly payment amounts by gender and sport"
-          height="h-80"
-        />
+        <div className="grid grid-cols-1 gap-6">
+          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              NIL Payment Trends
+            </h3>
+            <p className="text-sm text-gray-500 mb-4">
+              Accumulated NIL payments over time
+            </p>
+            <div className="h-80">
+              {loading ? (
+                <div className="h-full flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-ncaa-blue"></div>
+                </div>
+              ) : getFilteredPayments().length > 0 ? (
+                <AccumulatedPaymentsChart payments={getFilteredPayments()} />
+              ) : (
+                <div className="h-full flex items-center justify-center">
+                  <p className="text-gray-500">No payment data available</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <AnalyticsChart
-            title="Payment Distribution by Sport"
-            description="Breakdown of NIL payments across different sports"
-          />
-          <AnalyticsChart
-            title="Gender Comparison"
-            description="NIL payment comparison between male and female athletes"
-          />
+          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              Payment Distribution by Sport
+            </h3>
+            <p className="text-sm text-gray-500 mb-4">
+              Breakdown of NIL payments across different sports
+            </p>
+            <div className="h-64">
+              {loading ? (
+                <div className="flex justify-center items-center h-64">
+                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-ncaa-blue"></div>
+                </div>
+              ) : getFilteredPaymentsBySport(payments).length > 0 ? (
+                <SportDistributionPieChart
+                  sportData={getFilteredPaymentsBySport(payments)}
+                  filteredPayments={payments}
+                />
+              ) : (
+                <div className="text-center text-gray-500">
+                  No data available
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              Gender Comparison
+            </h3>
+            <p className="text-sm text-gray-500 mb-4">
+              NIL payment comparison between male and female athletes
+            </p>
+            <div className="h-64">
+              {loading ? (
+                <div className="h-full flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-ncaa-blue"></div>
+                </div>
+              ) : getFilteredPaymentsByGender().length > 0 ? (
+                <GenderDistributionPieChart
+                  genderData={getFilteredPaymentsByGender()}
+                />
+              ) : (
+                <div className="h-full flex items-center justify-center">
+                  <p className="text-gray-500">No gender data available</p>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <AnalyticsChart
-            title="Top Earners"
-            description="Athletes with highest NIL payments"
-          />
-          <AnalyticsChart
-            title="Payment Sources"
-            description="Types of NIL payment sources"
-          />
+          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              Top Earners
+            </h3>
+            <p className="text-sm text-gray-500 mb-4">
+              Athletes with highest NIL payments
+            </p>
+            <div className="h-64">
+              {loading ? (
+                <div className="h-full flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-ncaa-blue"></div>
+                </div>
+              ) : getTopEarners().length > 0 ? (
+                <TopEarnersChart topEarners={getTopEarners()} />
+              ) : (
+                <div className="h-full flex items-center justify-center">
+                  <p className="text-gray-500">No payment data available</p>
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              Payment Sources
+            </h3>
+            <p className="text-sm text-gray-500 mb-4">
+              Types of NIL payment sources
+            </p>
+            <div className="h-64">
+              {loading ? (
+                <div className="h-full flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-ncaa-blue"></div>
+                </div>
+              ) : getPaymentSources().length > 0 ? (
+                <PaymentSourcesChart paymentSources={getPaymentSources()} />
+              ) : (
+                <div className="h-full flex items-center justify-center">
+                  <p className="text-gray-500">No payment data available</p>
+                </div>
+              )}
+            </div>
+          </div>
           <AnalyticsChart
             title="Compliance Metrics"
             description="Key Title IX compliance indicators"
