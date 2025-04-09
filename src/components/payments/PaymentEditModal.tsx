@@ -8,6 +8,7 @@ interface PaymentEditModalProps {
     amount: number;
     date: string;
     source: string;
+    activity_type: string;
   };
   athletes: Array<{ id: string; name: string }>;
   onClose: () => void;
@@ -22,13 +23,36 @@ export default function PaymentEditModal({
 }: PaymentEditModalProps) {
   const supabase = createClientComponentClient();
   const [formData, setFormData] = useState({
-    athlete_id: payment.athlete_id,
-    amount: payment.amount,
-    date: payment.date.split("T")[0],
-    source: payment.source,
+    athlete_id: payment.athlete_id || "",
+    amount: payment.amount || 0,
+    date: payment.date || new Date().toISOString().split("T")[0],
+    source: payment.source || "",
+    activity_type: payment.activity_type || "",
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Common payment sources
+  const commonSources = [
+    "Social Media",
+    "Appearance",
+    "Autograph",
+    "Merchandise",
+    "Camp/Clinic",
+    "Other",
+  ];
+
+  const activityTypes = [
+    "Instagram Post",
+    "Twitter Post",
+    "TikTok Video",
+    "YouTube Video",
+    "Personal Appearance",
+    "Autograph Signing",
+    "Merchandise Sale",
+    "Camp/Clinic Instruction",
+    "Other",
+  ];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,22 +60,40 @@ export default function PaymentEditModal({
     setError(null);
 
     try {
-      const { error } = await supabase
-        .from("payments")
-        .update({
-          athlete_id: formData.athlete_id,
-          amount: formData.amount,
-          date: formData.date,
-          source: formData.source,
-        })
-        .eq("id", payment.id);
+      const paymentData = {
+        athlete_id: formData.athlete_id,
+        amount: Number(formData.amount),
+        date: formData.date,
+        source: formData.source,
+        activity_type: formData.activity_type,
+      };
 
-      if (error) throw error;
+      let result;
+      if (payment.id) {
+        // Update existing payment
+        result = await supabase
+          .from("payments")
+          .update(paymentData)
+          .eq("id", payment.id);
+      } else {
+        // Create new payment
+        result = await supabase.from("payments").insert(paymentData);
+      }
+
+      if (result.error) {
+        console.error("Supabase error:", result.error);
+        throw new Error(result.error.message || "Failed to save payment");
+      }
+
       onSave();
       onClose();
-    } catch (error) {
-      console.error("Error updating payment:", error);
-      setError("Failed to update payment. Please try again.");
+    } catch (error: any) {
+      console.error("Error saving payment:", error);
+      setError(
+        error?.message ||
+          error?.error?.message ||
+          "Failed to save payment. Please try again."
+      );
     } finally {
       setLoading(false);
     }
@@ -60,7 +102,9 @@ export default function PaymentEditModal({
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg p-6 w-full max-w-md">
-        <h2 className="text-xl font-semibold mb-4">Edit Payment</h2>
+        <h2 className="text-xl font-semibold mb-4">
+          {payment.id ? "Edit Payment" : "Add New Payment"}
+        </h2>
         {error && (
           <div className="bg-red-50 text-red-500 p-3 rounded-md mb-4">
             {error}
@@ -79,6 +123,7 @@ export default function PaymentEditModal({
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ncaa-blue"
               required
             >
+              <option value="">Select an athlete</option>
               {athletes.map((athlete) => (
                 <option key={athlete.id} value={athlete.id}>
                   {athlete.name}
@@ -92,9 +137,12 @@ export default function PaymentEditModal({
             </label>
             <input
               type="number"
-              value={formData.amount}
+              value={formData.amount || ""}
               onChange={(e) =>
-                setFormData({ ...formData, amount: parseFloat(e.target.value) })
+                setFormData({
+                  ...formData,
+                  amount: e.target.value ? parseFloat(e.target.value) : 0,
+                })
               }
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ncaa-blue"
               required
@@ -120,15 +168,41 @@ export default function PaymentEditModal({
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Source
             </label>
-            <input
-              type="text"
+            <select
               value={formData.source}
               onChange={(e) =>
                 setFormData({ ...formData, source: e.target.value })
               }
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ncaa-blue"
               required
-            />
+            >
+              <option value="">Select a source</option>
+              {commonSources.map((source) => (
+                <option key={source} value={source}>
+                  {source}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Activity Type
+            </label>
+            <select
+              value={formData.activity_type}
+              onChange={(e) =>
+                setFormData({ ...formData, activity_type: e.target.value })
+              }
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ncaa-blue"
+              required
+            >
+              <option value="">Select an activity type</option>
+              {activityTypes.map((type) => (
+                <option key={type} value={type}>
+                  {type}
+                </option>
+              ))}
+            </select>
           </div>
           <div className="flex justify-end space-x-3 mt-6">
             <button
@@ -143,7 +217,11 @@ export default function PaymentEditModal({
               disabled={loading}
               className="px-4 py-2 text-sm font-medium text-white bg-ncaa-blue rounded-md hover:bg-ncaa-darkblue focus:outline-none focus:ring-2 focus:ring-ncaa-blue disabled:opacity-50"
             >
-              {loading ? "Saving..." : "Save Changes"}
+              {loading
+                ? "Saving..."
+                : payment.id
+                ? "Save Changes"
+                : "Add Payment"}
             </button>
           </div>
         </form>

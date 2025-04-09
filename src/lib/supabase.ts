@@ -87,11 +87,58 @@ export async function updateSport(id: number, name: string): Promise<Sport> {
 
 export async function deleteSport(id: number): Promise<void> {
   const supabase = getSupabase();
-  const { error } = await supabase.from("sports").delete().eq("id", id);
 
-  if (error) {
-    console.error("Error deleting sport:", error);
-    throw new Error("Failed to delete sport");
+  try {
+    // First, get all athlete IDs for this sport
+    const { data: athletes, error: athletesError } = await supabase
+      .from("athletes")
+      .select("id")
+      .eq("sport_id", id);
+
+    if (athletesError) {
+      console.error("Error fetching athletes:", athletesError);
+      throw new Error("Failed to fetch athletes for deletion");
+    }
+
+    const athleteIds = athletes?.map((athlete) => athlete.id) || [];
+
+    // Delete all payments for these athletes
+    if (athleteIds.length > 0) {
+      const { error: paymentsError } = await supabase
+        .from("payments")
+        .delete()
+        .in("athlete_id", athleteIds);
+
+      if (paymentsError) {
+        console.error("Error deleting payments:", paymentsError);
+        throw new Error("Failed to delete payments");
+      }
+    }
+
+    // Delete all athletes for this sport
+    const { error: deleteAthletesError } = await supabase
+      .from("athletes")
+      .delete()
+      .eq("sport_id", id);
+
+    if (deleteAthletesError) {
+      console.error("Error deleting athletes:", deleteAthletesError);
+      throw new Error("Failed to delete athletes");
+    }
+
+    // Finally delete the sport
+    const { error: sportError } = await supabase
+      .from("sports")
+      .delete()
+      .eq("id", id);
+
+    if (sportError) {
+      console.error("Error deleting sport:", sportError);
+      throw new Error("Failed to delete sport");
+    }
+  } catch (error) {
+    console.error("Error in deleteSport:", error);
+    throw error;
   }
 }
 

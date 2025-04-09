@@ -28,14 +28,20 @@ export default function PaymentsPage() {
   const [editingPayment, setEditingPayment] =
     useState<PaymentWithDetails | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [athletes, setAthletes] = useState<Athlete[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       setError("");
       try {
-        const data = await fetchPaymentsWithDetails();
-        setPayments(data as PaymentWithDetails[]);
+        const [paymentsData, athletesData] = await Promise.all([
+          fetchPaymentsWithDetails(),
+          supabase.from("athletes").select("*"),
+        ]);
+
+        setPayments(paymentsData as PaymentWithDetails[]);
+        setAthletes(athletesData.data || []);
       } catch (err) {
         setError("Failed to load payments. Please try again later.");
         console.error(err);
@@ -558,9 +564,9 @@ export default function PaymentsPage() {
               editingPayment?.date || new Date().toISOString().split("T")[0],
             source: editingPayment?.source || "",
           }}
-          athletes={payments.map((p) => ({
-            id: p.athlete_id.toString(),
-            name: p.athlete?.name || "Unknown Athlete",
+          athletes={athletes.map((athlete) => ({
+            id: athlete.id.toString(),
+            name: athlete.name,
           }))}
           onClose={() => {
             setShowEditModal(false);
