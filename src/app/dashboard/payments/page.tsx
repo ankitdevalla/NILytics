@@ -9,10 +9,13 @@ import {
   Sport,
 } from "@/lib/supabase";
 import AddPaymentModal from "@/components/payments/AddPaymentModal";
+import PaymentEditModal from "@/components/payments/PaymentEditModal";
+import { createClientComponentClient } from "@/lib/auth";
 
 type PaymentWithDetails = Payment & { athlete: Athlete & { sport: Sport } };
 
 export default function PaymentsPage() {
+  const supabase = createClientComponentClient();
   const [payments, setPayments] = useState<PaymentWithDetails[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -22,6 +25,9 @@ export default function PaymentsPage() {
   const [sortField, setSortField] = useState<string>("date");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [editingPayment, setEditingPayment] =
+    useState<PaymentWithDetails | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -172,6 +178,32 @@ export default function PaymentsPage() {
       });
   };
 
+  const handleEdit = (payment: Payment) => {
+    setEditingPayment(payment as PaymentWithDetails);
+    setShowEditModal(true);
+  };
+
+  const handleDelete = async (paymentId: string) => {
+    if (!confirm("Are you sure you want to delete this payment?")) return;
+
+    try {
+      const { error } = await supabase
+        .from("payments")
+        .delete()
+        .eq("id", paymentId);
+
+      if (error) throw error;
+
+      // Remove the deleted payment from the local state
+      setPayments((currentPayments) =>
+        currentPayments.filter((payment) => payment.id.toString() !== paymentId)
+      );
+    } catch (error) {
+      console.error("Error deleting payment:", error);
+      alert("Failed to delete payment. Please try again.");
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
@@ -216,7 +248,10 @@ export default function PaymentsPage() {
         </div>
         <div className="mt-4 sm:mt-0">
           <button
-            onClick={() => setIsAddModalOpen(true)}
+            onClick={() => {
+              setEditingPayment(null);
+              setShowEditModal(true);
+            }}
             className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-ncaa-blue hover:bg-ncaa-darkblue focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ncaa-blue"
           >
             <svg
@@ -462,18 +497,18 @@ export default function PaymentsPage() {
                       {formatCurrency(payment.amount)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <Link
-                        href={`/dashboard/payments/${payment.id}`}
+                      <button
+                        onClick={() => handleEdit(payment)}
                         className="text-ncaa-blue hover:text-ncaa-darkblue mr-4"
                       >
-                        View
-                      </Link>
-                      <Link
-                        href={`/dashboard/payments/${payment.id}/edit`}
-                        className="text-ncaa-blue hover:text-ncaa-darkblue"
-                      >
                         Edit
-                      </Link>
+                      </button>
+                      <button
+                        onClick={() => handleDelete(payment.id.toString())}
+                        className="text-red-600 hover:text-red-900"
+                      >
+                        Delete
+                      </button>
                     </td>
                   </tr>
                 ))
@@ -512,6 +547,36 @@ export default function PaymentsPage() {
         onClose={() => setIsAddModalOpen(false)}
         onPaymentAdded={handlePaymentAdded}
       />
+
+      {showEditModal && (
+        <PaymentEditModal
+          payment={{
+            id: editingPayment?.id?.toString() || "",
+            athlete_id: editingPayment?.athlete_id?.toString() || "",
+            amount: editingPayment?.amount || 0,
+            date:
+              editingPayment?.date || new Date().toISOString().split("T")[0],
+            source: editingPayment?.source || "",
+          }}
+          athletes={payments.map((p) => ({
+            id: p.athlete_id.toString(),
+            name: p.athlete?.name || "Unknown Athlete",
+          }))}
+          onClose={() => {
+            setShowEditModal(false);
+            setEditingPayment(null);
+          }}
+          onSave={() => {
+            fetchPaymentsWithDetails()
+              .then((data) => {
+                setPayments(data as PaymentWithDetails[]);
+              })
+              .catch((err) => {
+                console.error("Error refreshing payments:", err);
+              });
+          }}
+        />
+      )}
     </div>
   );
 }
