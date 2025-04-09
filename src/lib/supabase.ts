@@ -505,7 +505,7 @@ export async function fetchDashboardStats() {
     const { data: monthlyData, error: monthlyError } = await supabase.rpc(
       "get_payment_trends",
       {
-        interval_type: "monthly",
+        interval_type: "month",
       }
     );
 
