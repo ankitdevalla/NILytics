@@ -157,18 +157,22 @@ function MetricCard({
 function AnalyticsFilter({
   timePeriod,
   setTimePeriod,
+  sports,
+  selectedSport,
+  setSelectedSport,
 }: {
   timePeriod: string;
   setTimePeriod: (period: string) => void;
+  sports: Sport[];
+  selectedSport: string;
+  setSelectedSport: (sport: string) => void;
 }) {
-  const [activeFilter, setActiveFilter] = useState("all");
-
   const filters = [
     { id: "all", name: "All Sports" },
-    { id: "football", name: "Football" },
-    { id: "basketball", name: "Basketball" },
-    { id: "soccer", name: "Soccer" },
-    { id: "other", name: "Other Sports" },
+    ...sports.map((sport) => ({
+      id: sport.id,
+      name: sport.name,
+    })),
   ];
 
   return (
@@ -178,9 +182,9 @@ function AnalyticsFilter({
         {filters.map((filter) => (
           <button
             key={filter.id}
-            onClick={() => setActiveFilter(filter.id)}
+            onClick={() => setSelectedSport(filter.id)}
             className={`px-4 py-2 text-sm font-medium rounded-md ${
-              activeFilter === filter.id
+              selectedSport === filter.id
                 ? "bg-ncaa-blue text-white"
                 : "bg-gray-100 text-gray-700 hover:bg-gray-200"
             }`}
@@ -212,6 +216,7 @@ export default function AnalyticsPage() {
   const [sports, setSports] = useState<Sport[]>([]);
   const [loading, setLoading] = useState(true);
   const [timePeriod, setTimePeriod] = useState<string>("30days");
+  const [selectedSport, setSelectedSport] = useState<string>("all");
 
   // Format currency helper function
   const formatCurrency = (amount: number): string => {
@@ -221,58 +226,61 @@ export default function AnalyticsPage() {
     }).format(amount);
   };
 
-  useEffect(() => {
-    async function fetchData() {
-      setLoading(true);
-      try {
-        // Fetch payments
-        const { data: paymentsData, error: paymentsError } = await supabase
-          .from("payments")
-          .select("*");
+  // Filter payments based on the selected time period and sport
+  const getFilteredPayments = () => {
+    if (!payments.length) return [];
 
-        if (paymentsError) throw paymentsError;
+    const now = new Date();
+    let startDate = new Date();
 
-        // Fetch athletes
-        const { data: athletesData, error: athletesError } = await supabase
-          .from("athletes")
-          .select("*");
-
-        if (athletesError) throw athletesError;
-
-        // Fetch sports
-        const { data: sportsData, error: sportsError } = await supabase
-          .from("sports")
-          .select("*");
-
-        if (sportsError) throw sportsError;
-
-        setPayments(paymentsData || []);
-        setAthletes(athletesData || []);
-        setSports(sportsData || []);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-      } finally {
-        setLoading(false);
-      }
+    switch (timePeriod) {
+      case "30days":
+        startDate.setDate(now.getDate() - 30);
+        break;
+      case "90days":
+        startDate.setDate(now.getDate() - 90);
+        break;
+      case "12months":
+        startDate.setMonth(now.getMonth() - 12);
+        break;
+      case "all":
+      default:
+        startDate = new Date(0); // Start from beginning of time
     }
 
-    fetchData();
-  }, [supabase]);
+    return payments.filter((payment) => {
+      const paymentDate = new Date(payment.date);
+      const isInTimeRange = paymentDate >= startDate && paymentDate <= now;
+
+      if (selectedSport === "all") {
+        return isInTimeRange;
+      }
+
+      // Get the athlete's sport_id
+      const athlete = athletes.find((a) => a.id === payment.athlete_id);
+      return isInTimeRange && athlete?.sport_id === selectedSport;
+    });
+  };
 
   // Calculate average payment
   const averagePayment = useMemo(() => {
-    if (!payments.length) return 0;
-    const total = payments.reduce((sum, payment) => sum + payment.amount, 0);
-    return total / payments.length;
-  }, [payments]);
+    const filteredPayments = getFilteredPayments();
+    if (!filteredPayments.length) return 0;
+    const total = filteredPayments.reduce(
+      (sum, payment) => sum + payment.amount,
+      0
+    );
+    return total / filteredPayments.length;
+  }, [payments, timePeriod, selectedSport]);
 
   // Calculate total unique athletes with NIL payments
   const totalAthletesWithNIL = useMemo(() => {
+    const filteredPayments = getFilteredPayments();
     const uniqueAthleteIds = new Set(
-      payments.map((payment) => payment.athlete_id)
+      filteredPayments.map((payment) => payment.athlete_id)
     );
     return uniqueAthleteIds.size;
-  }, [payments]);
+  }, [payments, timePeriod, selectedSport]);
 
   // Calculate percentage change in athletes with NIL
   const calculateAthletePercentageChange = () => {
@@ -442,35 +450,6 @@ export default function AnalyticsPage() {
     },
   ];
 
-  // Filter payments based on the selected time period
-  const getFilteredPayments = () => {
-    if (!payments.length) return [];
-
-    const now = new Date();
-    let startDate = new Date();
-
-    switch (timePeriod) {
-      case "30days":
-        startDate.setDate(now.getDate() - 30);
-        break;
-      case "90days":
-        startDate.setDate(now.getDate() - 90);
-        break;
-      case "12months":
-        startDate.setMonth(now.getMonth() - 12);
-        break;
-      case "all":
-      default:
-        // Return all payments
-        return payments;
-    }
-
-    return payments.filter((payment) => {
-      const paymentDate = new Date(payment.date);
-      return paymentDate >= startDate && paymentDate <= now;
-    });
-  };
-
   const getFilteredPaymentsBySport = (payments: Payment[]): SportData[] => {
     // Create a map to store payment data by sport
     const sportMap = new Map<string, SportData>();
@@ -554,7 +533,7 @@ export default function AnalyticsPage() {
   };
 
   const getTopEarners = () => {
-    // Get payments filtered by the selected time period
+    // Get payments filtered by the selected time period and sport
     const filteredPayments = getFilteredPayments();
 
     // Create a map to store total payments by athlete
@@ -587,7 +566,7 @@ export default function AnalyticsPage() {
   };
 
   const getPaymentSources = () => {
-    // Get payments filtered by the selected time period
+    // Get payments filtered by the selected time period and sport
     const filteredPayments = getFilteredPayments();
 
     // Create a map to store payment data by source
@@ -617,6 +596,44 @@ export default function AnalyticsPage() {
       payment_count: data.payment_count,
     }));
   };
+
+  useEffect(() => {
+    async function fetchData() {
+      setLoading(true);
+      try {
+        // Fetch payments
+        const { data: paymentsData, error: paymentsError } = await supabase
+          .from("payments")
+          .select("*");
+
+        if (paymentsError) throw paymentsError;
+
+        // Fetch athletes
+        const { data: athletesData, error: athletesError } = await supabase
+          .from("athletes")
+          .select("*");
+
+        if (athletesError) throw athletesError;
+
+        // Fetch sports
+        const { data: sportsData, error: sportsError } = await supabase
+          .from("sports")
+          .select("*");
+
+        if (sportsError) throw sportsError;
+
+        setPayments(paymentsData || []);
+        setAthletes(athletesData || []);
+        setSports(sportsData || []);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchData();
+  }, [supabase]);
 
   return (
     <div>
@@ -666,7 +683,13 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Filters */}
-      <AnalyticsFilter timePeriod={timePeriod} setTimePeriod={setTimePeriod} />
+      <AnalyticsFilter
+        timePeriod={timePeriod}
+        setTimePeriod={setTimePeriod}
+        sports={sports}
+        selectedSport={selectedSport}
+        setSelectedSport={setSelectedSport}
+      />
 
       {/* Charts */}
       <div className="space-y-6">

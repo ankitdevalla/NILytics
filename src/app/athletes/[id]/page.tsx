@@ -1,12 +1,10 @@
 import AthleteProfile from "@/components/athletes/AthleteProfile";
 
-interface PageProps {
-  params: {
-    id: string;
-  };
-}
-
-export default function AthletePage({ params }: PageProps) {
+export default async function AthletePage({
+  params,
+}: {
+  params: { id: string };
+}) {
   return (
     <main>
       <AthleteProfile athleteId={params.id} />
