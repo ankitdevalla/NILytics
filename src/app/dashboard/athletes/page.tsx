@@ -11,9 +11,10 @@ import {
 import AddAthleteModal from "@/components/athletes/AddAthleteModal";
 import DeleteAthleteConfirmationModal from "@/components/athletes/DeleteAthleteConfirmationModal";
 import { getSupabase } from "@/lib/supabase";
+import ImportAthletes from "@/components/ImportAthletes";
 
 export default function AthletesPage() {
-  const [athletes, setAthletes] = useState<(Athlete & { sport: Sport })[]>([]);
+  const [athletes, setAthletes] = useState<Athlete[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>("");
@@ -21,10 +22,16 @@ export default function AthletesPage() {
   const [sportFilter, setSportFilter] = useState<string>("all");
   const [sortField, setSortField] = useState<string>("name");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState<boolean>(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [athleteToDelete, setAthleteToDelete] = useState<Athlete | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [newAthleteName, setNewAthleteName] = useState<string>("");
+  const [newAthleteGender, setNewAthleteGender] = useState<string>("");
+  const [newAthleteYear, setNewAthleteYear] = useState<string>("");
+  const [newAthleteSport, setNewAthleteSport] = useState<string>("");
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [formError, setFormError] = useState<string>("");
 
   useEffect(() => {
     const loadData = async () => {
@@ -211,14 +218,33 @@ export default function AthletesPage() {
     <div>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Athletes</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Manage Athletes</h1>
           <p className="mt-1 text-sm text-gray-500">
-            Manage and view all athletes in your program
+            Add, edit, or remove athletes from your institution
           </p>
         </div>
-        <div className="mt-4 sm:mt-0 flex space-x-2">
+        <div className="mt-4 sm:mt-0 space-x-3">
+          <ImportAthletes
+            onImportComplete={() => {
+              // Refresh the athletes list
+              fetchAthletesWithSport()
+                .then((data) => {
+                  setAthletes(data);
+                })
+                .catch((err) => {
+                  console.error("Error refreshing athletes after import:", err);
+                });
+            }}
+          />
           <button
-            onClick={() => setIsAddModalOpen(true)}
+            onClick={() => {
+              setNewAthleteName("");
+              setNewAthleteGender("");
+              setNewAthleteYear("");
+              setNewAthleteSport("");
+              setFormError("");
+              setIsAddModalOpen(true);
+            }}
             className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-ncaa-blue hover:bg-ncaa-darkblue focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ncaa-blue"
           >
             <svg
