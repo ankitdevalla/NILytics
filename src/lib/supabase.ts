@@ -68,7 +68,7 @@ export async function createSport(name: string): Promise<Sport> {
   return data;
 }
 
-export async function updateSport(id: number, name: string): Promise<Sport> {
+export async function updateSport(id: string, name: string): Promise<Sport> {
   const supabase = getSupabase();
   const { data, error } = await supabase
     .from("sports")
@@ -85,59 +85,78 @@ export async function updateSport(id: number, name: string): Promise<Sport> {
   return data;
 }
 
-export async function deleteSport(id: number): Promise<void> {
+export async function deleteSport(id: string): Promise<void> {
   const supabase = getSupabase();
+  console.log(`Attempting to delete sport with ID: ${id} and associated data using RPC`);
 
   try {
-    // First, get all athlete IDs for this sport
-    const { data: athletes, error: athletesError } = await supabase
-      .from("athletes")
-      .select("id")
-      .eq("sport_id", id);
+    // Use RPC to execute a SQL function that will handle the deletion in the correct order
+    const { error } = await supabase.rpc('delete_sport_cascade_rpc', {
+      p_sport_id: id,
+    });
 
-    if (athletesError) {
-      console.error("Error fetching athletes:", athletesError);
-      throw new Error("Failed to fetch athletes for deletion");
-    }
+    if (error) {
+      console.error(`Error in RPC delete_sport_cascade_rpc for ID ${id}:`, error);
 
-    const athleteIds = athletes?.map((athlete) => athlete.id) || [];
+      // Fallback to sequential delete if RPC doesn't exist or fails
+      console.log('Fallback: Attempting sequential delete');
 
-    // Delete all payments for these athletes
-    if (athleteIds.length > 0) {
-      const { error: paymentsError } = await supabase
-        .from("payments")
-        .delete()
-        .in("athlete_id", athleteIds);
+      // First, get all athletes for this sport
+      const { data: athletes, error: fetchError } = await supabase
+        .from('athletes')
+        .select('id')
+        .eq('sport_id', id);
 
-      if (paymentsError) {
-        console.error("Error deleting payments:", paymentsError);
-        throw new Error("Failed to delete payments");
+      if (fetchError) {
+        console.error(`Error fetching athletes for sport ID ${id}:`, fetchError);
+        throw new Error(`Failed to fetch athletes: ${fetchError.message}`);
       }
-    }
 
-    // Delete all athletes for this sport
-    const { error: deleteAthletesError } = await supabase
-      .from("athletes")
-      .delete()
-      .eq("sport_id", id);
+      const athleteIds = athletes?.map(athlete => athlete.id) || [];
+      console.log(`Found ${athleteIds.length} athletes for sport ID ${id}`);
+      
+      // For each athlete, delete their payments first
+      for (const athleteId of athleteIds) {
+        // Delete all payments for this athlete
+        const { error: paymentsError } = await supabase
+          .from('payments')
+          .delete()
+          .eq('athlete_id', athleteId.toString());
 
-    if (deleteAthletesError) {
-      console.error("Error deleting athletes:", deleteAthletesError);
-      throw new Error("Failed to delete athletes");
-    }
+        if (paymentsError) {
+          console.error(`Error deleting payments for athlete ID ${athleteId}:`, paymentsError);
+        } else {
+          console.log(`Successfully deleted payments for athlete ID ${athleteId}`);
+        }
+      }
 
-    // Finally delete the sport
-    const { error: sportError } = await supabase
-      .from("sports")
-      .delete()
-      .eq("id", id);
+      // Now delete all athletes for this sport
+      const { error: athletesError } = await supabase
+        .from('athletes')
+        .delete()
+        .eq('sport_id', id);
 
-    if (sportError) {
-      console.error("Error deleting sport:", sportError);
-      throw new Error("Failed to delete sport");
+      if (athletesError) {
+        console.error(`Error deleting athletes for sport ID ${id}:`, athletesError);
+      } else {
+        console.log(`Successfully deleted all athletes for sport ID ${id}`);
+      }
+
+      // Finally delete the sport itself
+      const { error: sportError } = await supabase
+        .from('sports')
+        .delete()
+        .eq('id', id);
+
+      if (sportError) {
+        console.error(`Error deleting sport ID ${id}:`, sportError);
+        throw new Error(`Failed to delete sport: ${sportError.message}`);
+      }
+    } else {
+      console.log(`Successfully deleted sport with ID ${id} via RPC`);
     }
   } catch (error) {
-    console.error("Error in deleteSport:", error);
+    console.error(`Error in deleteSport for ID ${id}:`, error);
     throw error;
   }
 }
