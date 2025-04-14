@@ -6,8 +6,10 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
 
 // Use the same Supabase client across the app
+export const supabase = createClientComponentClient();
+
 export const getSupabase = () => {
-  return createClientComponentClient();
+  return supabase;
 };
 
 export type Sport = {
