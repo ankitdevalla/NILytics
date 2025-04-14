@@ -80,17 +80,28 @@ export default function SportsPage() {
     }
   }
 
-  const handleDeleteSport = async (sportId: number) => {
-    if (!confirm('Are you sure you want to delete this sport? All athletes associated with this sport will need to be reassigned.')) {
+  const handleDeleteSport = async (sportId: string) => {
+    if (!confirm('Are you sure you want to delete this sport? This will also delete all athletes associated with this sport and their payment records.')) {
       return
     }
 
     try {
+      setLoading(true)
+      setError(null)
+      console.log('Initiating sport deletion process for ID:', sportId)
+      
+      // Call the deleteSport function
       await deleteSport(sportId)
+      
+      // Update the local state to remove the deleted sport
       setSports(sports.filter(sport => sport.id !== sportId))
+      alert('Sport and associated data successfully deleted.')
     } catch (error) {
       console.error('Error deleting sport:', error)
-      alert('Failed to delete sport. Please try again.')
+      setError('Failed to delete sport and associated data. Please try again.')
+      alert('Failed to delete sport. Please check the console for more details.')
+    } finally {
+      setLoading(false)
     }
   }
 
