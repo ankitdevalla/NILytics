@@ -7,6 +7,7 @@ import SportDistributionPieChart from "@/components/charts/SportDistributionPieC
 import GenderDistributionPieChart from "@/components/charts/GenderDistributionPieChart";
 import TopEarnersChart from "@/components/charts/TopEarnersChart";
 import PaymentSourcesChart from "@/components/charts/PaymentSourcesChart";
+import SpendingLimitsChart from "@/components/charts/SpendingLimitsChart";
 
 // Define Payment type
 interface Payment {
@@ -39,6 +40,17 @@ interface SportData {
   sport_name: string;
   total_amount: number;
   payment_count: number;
+}
+
+// Define SpendingLimit type
+interface SpendingLimit {
+  id: string;
+  sport_id: string;
+  sport_name: string;
+  limit_amount: number;
+  period: "monthly" | "quarterly" | "yearly";
+  created_at: string;
+  updated_at: string;
 }
 
 // Chart placeholder component
@@ -214,6 +226,7 @@ export default function AnalyticsPage() {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [athletes, setAthletes] = useState<Athlete[]>([]);
   const [sports, setSports] = useState<Sport[]>([]);
+  const [spendingLimits, setSpendingLimits] = useState<SpendingLimit[]>([]);
   const [loading, setLoading] = useState(true);
   const [timePeriod, setTimePeriod] = useState<string>("30days");
   const [selectedSport, setSelectedSport] = useState<string>("all");
@@ -622,9 +635,26 @@ export default function AnalyticsPage() {
 
         if (sportsError) throw sportsError;
 
+        // Fetch spending limits
+        const { data: limitsData, error: limitsError } = await supabase
+          .from("spending_limits")
+          .select(`
+            *,
+            sports (name)
+          `);
+
+        if (limitsError) throw limitsError;
+
+        // Format spending limits data
+        const formattedLimits = limitsData?.map((limit) => ({
+          ...limit,
+          sport_name: limit.sports?.name || "Unknown Sport",
+        })) || [];
+
         setPayments(paymentsData || []);
         setAthletes(athletesData || []);
         setSports(sportsData || []);
+        setSpendingLimits(formattedLimits);
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {
@@ -715,6 +745,32 @@ export default function AnalyticsPage() {
               )}
             </div>
           </div>
+          
+          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              Spending Limits Usage
+            </h3>
+            <p className="text-sm text-gray-500 mb-4">
+              Current spending compared to defined limits by sport
+            </p>
+            <div className="h-80">
+              {loading ? (
+                <div className="h-full flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-ncaa-blue"></div>
+                </div>
+              ) : spendingLimits.length > 0 && getFilteredPaymentsBySport(getFilteredPayments()).length > 0 ? (
+                <SpendingLimitsChart
+                  spendingLimits={spendingLimits}
+                  sportPaymentData={getFilteredPaymentsBySport(getFilteredPayments())}
+                  period={timePeriod}
+                />
+              ) : (
+                <div className="h-full flex items-center justify-center">
+                  <p className="text-gray-500">No spending limits data available</p>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -767,7 +823,7 @@ export default function AnalyticsPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
             <h3 className="text-lg font-medium text-gray-900 mb-2">
               Top Earners
@@ -810,10 +866,6 @@ export default function AnalyticsPage() {
               )}
             </div>
           </div>
-          <AnalyticsChart
-            title="Compliance Metrics"
-            description="Key Title IX compliance indicators"
-          />
         </div>
       </div>
     </div>
