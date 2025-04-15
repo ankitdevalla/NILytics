@@ -43,10 +43,39 @@ export default function SpendingLimitsPage() {
     try {
       const supabase = getSupabase();
 
-      // Fetch sports
+      // Get the current user's organization_id first
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error("User not authenticated");
+      }
+      
+      // Get organization_id from user metadata or organizations table
+      let organizationId = user.user_metadata?.organization_id;
+      
+      if (!organizationId) {
+        // Try to get from organizations table
+        const { data: orgData } = await supabase
+          .from('organizations')
+          .select('id')
+          .eq('admin_user_id', user.id)
+          .single();
+        
+        if (orgData) {
+          organizationId = orgData.id;
+        }
+      }
+      
+      if (!organizationId) {
+        throw new Error("User does not belong to an organization");
+      }
+      
+      console.log('Using organization_id for spending limits:', organizationId);
+      
+      // Fetch sports filtered by organization_id
       const { data: sportsData, error: sportsError } = await supabase
         .from("sports")
         .select("id, name")
+        .eq("organization_id", organizationId)
         .order("name");
 
       if (sportsError) {
@@ -54,16 +83,18 @@ export default function SpendingLimitsPage() {
         throw new Error(`Failed to load sports: ${sportsError.message}`);
       }
       setSports(sportsData || []);
-
-      // Fetch spending limits
+      
+      // Fetch spending limits filtered by organization_id
       const { data: limitsData, error: limitsError } = await supabase.from(
         "spending_limits"
-      ).select(`
+      )
+      .select(`
           *,
           sports (
             name
           )
-        `);
+        `)
+      .eq("organization_id", organizationId);
 
       if (limitsError) {
         console.error("Error fetching spending limits:", limitsError.message);
@@ -99,10 +130,40 @@ export default function SpendingLimitsPage() {
 
     try {
       const supabase = getSupabase();
+      
+      // Get the current user's organization_id
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error("User not authenticated");
+      }
+      
+      // Get organization_id from user metadata or organizations table
+      let organizationId = user.user_metadata?.organization_id;
+      
+      if (!organizationId) {
+        // Try to get from organizations table
+        const { data: orgData } = await supabase
+          .from('organizations')
+          .select('id')
+          .eq('admin_user_id', user.id)
+          .single();
+        
+        if (orgData) {
+          organizationId = orgData.id;
+        }
+      }
+      
+      if (!organizationId) {
+        throw new Error("User does not belong to an organization");
+      }
+      
+      console.log('Creating spending limit with organization_id:', organizationId);
+      
       const { error } = await supabase.from("spending_limits").insert({
         sport_id: newLimit.sport_id,
         limit_amount: parseFloat(newLimit.limit_amount),
         period: newLimit.period,
+        organization_id: organizationId, // Add organization_id
       });
 
       if (error) {
@@ -131,10 +192,51 @@ export default function SpendingLimitsPage() {
 
     try {
       const supabase = getSupabase();
+      
+      // Get the current user's organization_id
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error("User not authenticated");
+      }
+      
+      // Get organization_id from user metadata or organizations table
+      let organizationId = user.user_metadata?.organization_id;
+      
+      if (!organizationId) {
+        // Try to get from organizations table
+        const { data: orgData } = await supabase
+          .from('organizations')
+          .select('id')
+          .eq('admin_user_id', user.id)
+          .single();
+        
+        if (orgData) {
+          organizationId = orgData.id;
+        }
+      }
+      
+      if (!organizationId) {
+        throw new Error("User does not belong to an organization");
+      }
+      
+      // First verify this spending limit belongs to the user's organization
+      const { data: limitData } = await supabase
+        .from("spending_limits")
+        .select("organization_id")
+        .eq("id", id)
+        .single();
+        
+      if (!limitData || limitData.organization_id !== organizationId) {
+        throw new Error("You do not have permission to delete this spending limit");
+      }
+      
+      console.log('Deleting spending limit with id:', id, 'from organization:', organizationId);
+      
       const { error } = await supabase
         .from("spending_limits")
         .delete()
-        .eq("id", id);
+        .eq("id", id)
+        .eq("organization_id", organizationId); // Add organization_id filter
 
       if (error) throw error;
 

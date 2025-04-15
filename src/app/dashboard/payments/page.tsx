@@ -35,9 +35,37 @@ export default function PaymentsPage() {
       setLoading(true);
       setError("");
       try {
+        // Get the current user's organization_id
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          throw new Error("User not authenticated");
+        }
+        
+        // Get organization_id from user metadata or organizations table
+        let organizationId = user.user_metadata?.organization_id;
+        
+        if (!organizationId) {
+          // Try to get from organizations table
+          const { data: orgData } = await supabase
+            .from('organizations')
+            .select('id')
+            .eq('admin_user_id', user.id)
+            .single();
+          
+          if (orgData) {
+            organizationId = orgData.id;
+          }
+        }
+        
+        if (!organizationId) {
+          throw new Error("User does not belong to an organization");
+        }
+        
+        console.log('Fetching payments and athletes for organization:', organizationId);
+        
         const [paymentsData, athletesData] = await Promise.all([
-          fetchPaymentsWithDetails(),
-          supabase.from("athletes").select("*"),
+          fetchPaymentsWithDetails(), // This already filters by organization_id
+          supabase.from("athletes").select("*").eq("organization_id", organizationId),
         ]);
 
         setPayments(paymentsData as PaymentWithDetails[]);
@@ -563,6 +591,7 @@ export default function PaymentsPage() {
             date:
               editingPayment?.date || new Date().toISOString().split("T")[0],
             source: editingPayment?.source || "",
+            activity_type: editingPayment?.activity_type || "", // Added missing property
           }}
           athletes={athletes.map((athlete) => ({
             id: athlete.id.toString(),

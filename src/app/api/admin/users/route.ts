@@ -26,7 +26,47 @@ export async function GET() {
       )
     }
     
-    return NextResponse.json({ users: data.users })
+    // Get organizations to enhance user data
+    const { data: orgsData, error: orgsError } = await supabase
+      .from('organizations')
+      .select('id, name, admin_user_id')
+    
+    if (orgsError) {
+      console.error('Error fetching organizations:', orgsError)
+      // Continue with just user data if orgs can't be fetched
+    }
+    
+    // Create a map of user IDs to organizations
+    const userOrgs = new Map()
+    if (orgsData) {
+      orgsData.forEach(org => {
+        userOrgs.set(org.admin_user_id, {
+          id: org.id,
+          name: org.name
+        })
+      })
+    }
+    
+    // Enhance user data with organization info
+    const enhancedUsers = data.users.map(user => {
+      const org = userOrgs.get(user.id)
+      
+      // If organization info isn't in metadata, add it from our query
+      if (org && (!user.user_metadata?.organization || !user.user_metadata?.organization_id)) {
+        return {
+          ...user,
+          user_metadata: {
+            ...user.user_metadata,
+            organization: org.name,
+            organization_id: org.id
+          }
+        }
+      }
+      
+      return user
+    })
+    
+    return NextResponse.json({ users: enhancedUsers })
     
   } catch (error: any) {
     console.error('Error in users API:', error)

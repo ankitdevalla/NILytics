@@ -60,14 +60,70 @@ export default function PaymentEditModal({
     setError(null);
 
     try {
+      // Get current user to retrieve organization_id
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error("User not authenticated");
+      }
+      
+      // First try to get organization_id from user metadata
+      let organizationId = user.user_metadata?.organization_id;
+      
+      // If not in metadata, try to fetch from organizations table
+      if (!organizationId) {
+        const { data: orgData } = await supabase
+          .from('organizations')
+          .select('id')
+          .eq('admin_user_id', user.id)
+          .single();
+        
+        if (orgData) {
+          organizationId = orgData.id;
+        }
+      }
+      
+      // If still no organization, try to get from an existing athlete
+      if (!organizationId) {
+        const { data: athleteData } = await supabase
+          .from('athletes')
+          .select('organization_id')
+          .eq('id', formData.athlete_id)
+          .single();
+        
+        if (athleteData?.organization_id) {
+          organizationId = athleteData.organization_id;
+        }
+      }
+      
+      // Final fallback - get from any athlete
+      if (!organizationId) {
+        const { data: anyAthleteData } = await supabase
+          .from('athletes')
+          .select('organization_id')
+          .limit(1)
+          .single();
+        
+        if (anyAthleteData?.organization_id) {
+          organizationId = anyAthleteData.organization_id;
+        }
+      }
+      
+      if (!organizationId) {
+        throw new Error("Could not determine organization. Please contact administrator.");
+      }
+      
       const paymentData = {
         athlete_id: formData.athlete_id,
         amount: Number(formData.amount),
         date: formData.date,
         source: formData.source,
         activity_type: formData.activity_type,
+        organization_id: organizationId // Add organization_id to payment data
       };
 
+      console.log('Saving payment with data:', paymentData);
+      
       let result;
       if (payment.id) {
         // Update existing payment

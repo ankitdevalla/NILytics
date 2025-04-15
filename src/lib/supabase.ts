@@ -12,10 +12,61 @@ export const getSupabase = () => {
   return supabase;
 };
 
+// Helper function to get the current user's organization_id
+export async function getCurrentUserOrganizationId(): Promise<string | null> {
+  const supabase = getSupabase();
+  
+  console.log('getCurrentUserOrganizationId: Starting function');
+  
+  // Get the current user
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) {
+    console.log('getCurrentUserOrganizationId: No user found');
+    return null;
+  }
+  
+  console.log('getCurrentUserOrganizationId: User found', { 
+    id: user.id, 
+    email: user.email,
+    hasMetadata: !!user.user_metadata,
+    metadataKeys: user.user_metadata ? Object.keys(user.user_metadata) : []
+  });
+  
+  // Check if organization_id is in user metadata
+  if (user.user_metadata?.organization_id) {
+    console.log('getCurrentUserOrganizationId: Found organization_id in metadata:', user.user_metadata.organization_id);
+    return user.user_metadata.organization_id;
+  }
+  
+  console.log('getCurrentUserOrganizationId: No organization_id in metadata, checking organizations table');
+  
+  // If not in metadata, try to fetch from organizations table
+  const { data, error } = await supabase
+    .from('organizations')
+    .select('id')
+    .eq('admin_user_id', user.id)
+    .single();
+  
+  if (error) {
+    console.log('getCurrentUserOrganizationId: Error fetching from organizations table:', error);
+    return null;
+  }
+  
+  if (!data) {
+    console.log('getCurrentUserOrganizationId: No organization found for user');
+    return null;
+  }
+  
+  console.log('getCurrentUserOrganizationId: Found organization_id in table:', data.id);
+  return data.id;
+}
+
 export type Sport = {
   id: string;
   name: string;
   created_at: string;
+  organization_id?: string;
 };
 
 export type Athlete = {
@@ -25,6 +76,7 @@ export type Athlete = {
   year: string;
   sport_id: string;
   created_at: string;
+  organization_id?: string;
   sport?: Sport;
 };
 
@@ -36,14 +88,26 @@ export type Payment = {
   source: string;
   activity_type: string;
   created_at: string;
+  organization_id: string; // Changed from optional to required
   athlete?: Athlete & { sport?: Sport };
 };
 
 export async function fetchSports(): Promise<Sport[]> {
   const supabase = getSupabase();
+  
+  // Get the current user's organization_id
+  const organizationId = await getCurrentUserOrganizationId();
+  
+  if (!organizationId) {
+    console.warn("User does not belong to an organization, returning empty sports list");
+    return [];
+  }
+  
+  // Filter sports by organization_id
   const { data, error } = await supabase
     .from("sports")
     .select("*")
+    .eq("organization_id", organizationId)
     .order("name");
 
   if (error) {
@@ -56,9 +120,17 @@ export async function fetchSports(): Promise<Sport[]> {
 
 export async function createSport(name: string): Promise<Sport> {
   const supabase = getSupabase();
+  
+  // Get the current user's organization_id
+  const organizationId = await getCurrentUserOrganizationId();
+  
+  if (!organizationId) {
+    throw new Error("User does not belong to an organization");
+  }
+  
   const { data, error } = await supabase
     .from("sports")
-    .insert([{ name }])
+    .insert([{ name, organization_id: organizationId }])
     .select()
     .single();
 
@@ -165,9 +237,20 @@ export async function deleteSport(id: string): Promise<void> {
 
 export async function fetchAthletes(): Promise<Athlete[]> {
   const supabase = getSupabase();
+  
+  // Get the current user's organization_id
+  const organizationId = await getCurrentUserOrganizationId();
+  
+  if (!organizationId) {
+    console.warn("User does not belong to an organization, returning empty athletes list");
+    return [];
+  }
+  
+  // Filter athletes by organization_id
   const { data, error } = await supabase
     .from("athletes")
     .select("*")
+    .eq("organization_id", organizationId)
     .order("name");
 
   if (error) {
@@ -182,6 +265,15 @@ export async function fetchAthletesWithSport(): Promise<
   (Athlete & { sport: Sport })[]
 > {
   const supabase = getSupabase();
+  
+  // Get the current user's organization_id
+  const organizationId = await getCurrentUserOrganizationId();
+  
+  if (!organizationId) {
+    console.warn("User does not belong to an organization, returning empty athletes list");
+    return [];
+  }
+  
   const { data, error } = await supabase
     .from("athletes")
     .select(
@@ -190,6 +282,7 @@ export async function fetchAthletesWithSport(): Promise<
       sport:sports(*)
     `
     )
+    .eq("organization_id", organizationId)
     .order("name");
 
   if (error) {
@@ -202,9 +295,19 @@ export async function fetchAthletesWithSport(): Promise<
 
 export async function fetchPayments(): Promise<Payment[]> {
   const supabase = getSupabase();
+  
+  // Get the current user's organization_id
+  const organizationId = await getCurrentUserOrganizationId();
+  
+  if (!organizationId) {
+    console.warn("User does not belong to an organization, returning empty payments list");
+    return [];
+  }
+  
   const { data, error } = await supabase
     .from("payments")
     .select("*")
+    .eq("organization_id", organizationId)
     .order("date", { ascending: false });
 
   if (error) {
@@ -217,6 +320,15 @@ export async function fetchPayments(): Promise<Payment[]> {
 
 export async function fetchPaymentsWithDetails(): Promise<Payment[]> {
   const supabase = getSupabase();
+  
+  // Get the current user's organization_id
+  const organizationId = await getCurrentUserOrganizationId();
+  
+  if (!organizationId) {
+    console.warn("User does not belong to an organization, returning empty payments list");
+    return [];
+  }
+  
   const { data, error } = await supabase
     .from("payments")
     .select(
@@ -228,6 +340,7 @@ export async function fetchPaymentsWithDetails(): Promise<Payment[]> {
       )
     `
     )
+    .eq("organization_id", organizationId)
     .order("date", { ascending: false });
 
   if (error) {
@@ -309,12 +422,26 @@ export async function fetchPaymentsByAthleteId(
 }
 
 export async function createAthlete(
-  athlete: Omit<Athlete, "id" | "created_at">
+  athlete: Omit<Athlete, "id" | "created_at" | "organization_id">
 ): Promise<Athlete> {
   const supabase = getSupabase();
+  
+  // Get the current user's organization_id
+  const organizationId = await getCurrentUserOrganizationId();
+  
+  if (!organizationId) {
+    throw new Error("User does not belong to an organization");
+  }
+  
+  // Add organization_id to the athlete data
+  const athleteWithOrg = {
+    ...athlete,
+    organization_id: organizationId
+  };
+  
   const { data, error } = await supabase
     .from("athletes")
-    .insert([athlete])
+    .insert([athleteWithOrg])
     .select()
     .single();
 
@@ -327,20 +454,101 @@ export async function createAthlete(
 }
 
 export async function createPayment(
-  payment: Omit<Payment, "id" | "created_at">
+  payment: Omit<Payment, "id" | "created_at" | "organization_id">
 ): Promise<Payment> {
   const supabase = getSupabase();
+  
+  console.log('Starting createPayment function');
+  
+  // Get the current user
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    throw new Error("User not authenticated");
+  }
+  
+  console.log('Current user:', { id: user.id, email: user.email });
+  
+  // First try to get organization_id from user metadata
+  let organizationId = user.user_metadata?.organization_id;
+  console.log('Organization ID from metadata:', organizationId);
+  
+  // If not in metadata, try to fetch from organizations table
+  if (!organizationId) {
+    console.log('Trying to get organization from organizations table');
+    const { data: orgData, error: orgError } = await supabase
+      .from('organizations')
+      .select('id')
+      .eq('admin_user_id', user.id)
+      .single();
+    
+    if (orgError) {
+      console.error('Error fetching organization:', orgError);
+    } else if (orgData) {
+      organizationId = orgData.id;
+      console.log('Found organization in table:', organizationId);
+    }
+  }
+  
+  // If still no organization, try to get the first athlete's organization
+  if (!organizationId) {
+    console.log('Trying to get organization from athlete');
+    const { data: athleteData, error: athleteError } = await supabase
+      .from('athletes')
+      .select('organization_id')
+      .limit(1)
+      .single();
+    
+    if (athleteError) {
+      console.error('Error fetching athlete organization:', athleteError);
+    } else if (athleteData?.organization_id) {
+      organizationId = athleteData.organization_id;
+      console.log('Using organization from athlete:', organizationId);
+    }
+  }
+  
+  // If still no organization, try to get the first sport's organization
+  if (!organizationId) {
+    console.log('Trying to get organization from sport');
+    const { data: sportData, error: sportError } = await supabase
+      .from('sports')
+      .select('organization_id')
+      .limit(1)
+      .single();
+    
+    if (sportError) {
+      console.error('Error fetching sport organization:', sportError);
+    } else if (sportData?.organization_id) {
+      organizationId = sportData.organization_id;
+      console.log('Using organization from sport:', organizationId);
+    }
+  }
+  
+  // Final check - if still no organization, we can't proceed
+  if (!organizationId) {
+    console.error('No organization ID found after all attempts');
+    throw new Error("Could not determine organization. Please contact administrator.");
+  }
+  
+  // Add organization_id to the payment data
+  const paymentWithOrg = {
+    ...payment,
+    organization_id: organizationId
+  };
+  
+  console.log('Attempting to insert payment with data:', paymentWithOrg);
+  
   const { data, error } = await supabase
     .from("payments")
-    .insert([payment])
+    .insert([paymentWithOrg])
     .select()
     .single();
 
   if (error) {
     console.error("Error creating payment:", error);
-    throw new Error("Failed to create payment");
+    throw new Error(`Failed to create payment: ${error.message}`);
   }
 
+  console.log('Payment created successfully, returned data:', data);
   return data;
 }
 
@@ -475,9 +683,21 @@ export async function deletePayment(id: number): Promise<void> {
 
 export async function fetchDashboardStats() {
   const supabase = getSupabase();
+  
+  // Get the current user's organization_id
+  const organizationId = await getCurrentUserOrganizationId();
+  
+  if (!organizationId) {
+    console.error('User does not belong to an organization');
+    throw new Error('User does not belong to an organization');
+  }
+  
+  console.log('Fetching dashboard stats for organization:', organizationId);
+  
   // Get payment distribution by gender (for gender stats)
   const { data: genderDistribution, error: genderError } = await supabase.rpc(
-    "get_payment_distribution_by_gender"
+    "get_payment_distribution_by_gender",
+    { organization_filter: organizationId }
   );
 
   if (genderError) {
@@ -492,6 +712,7 @@ export async function fetchDashboardStats() {
   const { data: athleteCountByGender, error: athleteError } = await supabase
     .from("athletes")
     .select("gender")
+    .eq("organization_id", organizationId) // Filter by organization_id
     .then((result) => {
       if (result.error) throw result.error;
 
@@ -527,6 +748,7 @@ export async function fetchDashboardStats() {
       "get_payment_trends",
       {
         interval_type: "month",
+        organization_filter: organizationId // Add organization filter
       }
     );
 
@@ -556,7 +778,8 @@ export async function fetchDashboardStats() {
     // Fetch raw payment data and aggregate by month
     const { data: rawPayments, error: rawPaymentsError } = await supabase
       .from("payments")
-      .select("*");
+      .select("*")
+      .eq("organization_id", organizationId); // Filter by organization_id
 
     if (rawPaymentsError) {
       console.error(
@@ -600,7 +823,8 @@ export async function fetchDashboardStats() {
 
   // Get payment distribution by sport
   const { data: sportStats, error: sportError } = await supabase.rpc(
-    "get_payment_distribution_by_sport"
+    "get_payment_distribution_by_sport",
+    { organization_filter: organizationId } // Add organization filter
   );
 
   if (sportError) {
@@ -696,7 +920,20 @@ export async function getPaymentDistributionByGender(
   endDate?: string
 ) {
   const supabase = getSupabase();
-  const params: any = {};
+  
+  // Get the current user's organization_id
+  const organizationId = await getCurrentUserOrganizationId();
+  
+  if (!organizationId) {
+    console.error('User does not belong to an organization');
+    throw new Error('User does not belong to an organization');
+  }
+  
+  console.log('Fetching gender distribution for organization:', organizationId);
+  
+  const params: any = {
+    organization_filter: organizationId // Add organization filter
+  };
   if (startDate) params.start_date = startDate;
   if (endDate) params.end_date = endDate;
 
@@ -719,7 +956,20 @@ export async function getPaymentDistributionBySport(
   endDate?: string
 ) {
   const supabase = getSupabase();
-  const params: any = {};
+  
+  // Get the current user's organization_id
+  const organizationId = await getCurrentUserOrganizationId();
+  
+  if (!organizationId) {
+    console.error('User does not belong to an organization');
+    throw new Error('User does not belong to an organization');
+  }
+  
+  console.log('Fetching sport distribution for organization:', organizationId);
+  
+  const params: any = {
+    organization_filter: organizationId // Add organization filter
+  };
   if (startDate) params.start_date = startDate;
   if (endDate) params.end_date = endDate;
 

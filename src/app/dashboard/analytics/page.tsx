@@ -614,34 +614,69 @@ export default function AnalyticsPage() {
     async function fetchData() {
       setLoading(true);
       try {
-        // Fetch payments
+        // Get the current user's organization_id
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          throw new Error("User not authenticated");
+        }
+        
+        // Get organization_id from user metadata or organizations table
+        let organizationId = user.user_metadata?.organization_id;
+        
+        if (!organizationId) {
+          // Try to get from organizations table
+          const { data: orgData } = await supabase
+            .from('organizations')
+            .select('id')
+            .eq('admin_user_id', user.id)
+            .single();
+          
+          if (orgData) {
+            organizationId = orgData.id;
+          }
+        }
+        
+        if (!organizationId) {
+          throw new Error("User does not belong to an organization");
+        }
+        
+        console.log('Fetching analytics data for organization:', organizationId);
+        
+        // Fetch payments filtered by organization_id
         const { data: paymentsData, error: paymentsError } = await supabase
           .from("payments")
-          .select("*");
+          .select("*")
+          .eq("organization_id", organizationId);
 
         if (paymentsError) throw paymentsError;
 
-        // Fetch athletes
+        // Fetch athletes filtered by organization_id
         const { data: athletesData, error: athletesError } = await supabase
           .from("athletes")
-          .select("*");
+          .select("*")
+          .eq("organization_id", organizationId);
 
         if (athletesError) throw athletesError;
 
-        // Fetch sports
+        // Fetch sports filtered by organization_id
         const { data: sportsData, error: sportsError } = await supabase
           .from("sports")
-          .select("*");
+          .select("*")
+          .eq("organization_id", organizationId);
 
         if (sportsError) throw sportsError;
 
-        // Fetch spending limits
+        // We already have the organization_id from above, reuse it for spending limits
+        console.log('Using organization_id for analytics spending limits:', organizationId);
+        
+        // Fetch spending limits filtered by organization_id
         const { data: limitsData, error: limitsError } = await supabase
           .from("spending_limits")
           .select(`
             *,
             sports (name)
-          `);
+          `)
+          .eq("organization_id", organizationId);
 
         if (limitsError) throw limitsError;
 
