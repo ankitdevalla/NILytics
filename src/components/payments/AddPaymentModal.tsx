@@ -111,21 +111,32 @@ export default function AddPaymentModal({ isOpen, onClose, onPaymentAdded }: Add
     setError('')
 
     try {
+      console.log('Creating payment with data:', {
+        athlete_id: athleteId,
+        amount: Number(amount),
+        date,
+        source,
+        activity_type: activityType
+      });
+      
       const newPayment = await createPayment({
         athlete_id: athleteId,
         amount: Number(amount),
         date,
         source,
         activity_type: activityType
-      })
+      });
       
-      onPaymentAdded(newPayment)
-      handleClose()
-    } catch (error) {
-      console.error('Error adding payment:', error)
-      setError('Failed to add payment. Please try again.')
+      console.log('Payment created successfully:', newPayment);
+      onPaymentAdded(newPayment);
+      handleClose();
+    } catch (error: any) {
+      console.error('Error adding payment:', error);
+      // More detailed error message
+      const errorMessage = error.message || 'Failed to add payment. Please try again.';
+      setError(errorMessage);
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
   }
 
