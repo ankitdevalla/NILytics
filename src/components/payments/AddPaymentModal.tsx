@@ -15,6 +15,7 @@ export default function AddPaymentModal({ isOpen, onClose, onPaymentAdded }: Add
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]) // Today's date
   const [source, setSource] = useState('')
   const [activityType, setActivityType] = useState('')
+  const [link, setLink] = useState('') // New state for activity proof link
   const [athletes, setAthletes] = useState<Athlete[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
@@ -116,7 +117,8 @@ export default function AddPaymentModal({ isOpen, onClose, onPaymentAdded }: Add
         amount: Number(amount),
         date,
         source,
-        activity_type: activityType
+        activity_type: activityType,
+        link: link.trim() || undefined
       });
       
       const newPayment = await createPayment({
@@ -124,7 +126,8 @@ export default function AddPaymentModal({ isOpen, onClose, onPaymentAdded }: Add
         amount: Number(amount),
         date,
         source,
-        activity_type: activityType
+        activity_type: activityType,
+        link: link.trim() || undefined
       });
       
       console.log('Payment created successfully:', newPayment);
@@ -250,7 +253,7 @@ export default function AddPaymentModal({ isOpen, onClose, onPaymentAdded }: Add
                         value={activityType}
                         onChange={(e) => setActivityType(e.target.value)}
                         className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-ncaa-blue focus:border-ncaa-blue sm:text-sm"
-                        placeholder="Enter activity type"
+                        placeholder="e.g., Autograph Signing"
                         list="activity-types"
                         required
                       />
@@ -259,6 +262,23 @@ export default function AddPaymentModal({ isOpen, onClose, onPaymentAdded }: Add
                           <option key={type} value={type} />
                         ))}
                       </datalist>
+                    </div>
+
+                    <div className="mb-4">
+                      <label htmlFor="link" className="block text-sm font-medium text-gray-700 mb-1">
+                        Proof Link
+                      </label>
+                      <input
+                        type="url"
+                        id="link"
+                        value={link}
+                        onChange={(e) => setLink(e.target.value)}
+                        className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-ncaa-blue focus:border-ncaa-blue sm:text-sm"
+                        placeholder="https://example.com/proof-of-activity"
+                      />
+                      <p className="mt-1 text-xs text-gray-500">
+                        URL to proof of NIL activity (social media post, news article, etc.)
+                      </p>
                     </div>
                   </form>
                 </div>

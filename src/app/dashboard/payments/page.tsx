@@ -3,14 +3,16 @@
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import {
-  fetchPaymentsWithDetails,
-  Payment,
   Athlete,
+  Payment,
   Sport,
-} from "@/lib/supabase";
+  fetchAthletesWithSport,
+  fetchPaymentsWithDetails,
+  deletePayment
+} from '@/lib/supabase';
 import AddPaymentModal from "@/components/payments/AddPaymentModal";
 import PaymentEditModal from "@/components/payments/PaymentEditModal";
-import { createClientComponentClient } from "@/lib/auth";
+import { createClientComponentClient } from '@/lib/auth';
 
 type PaymentWithDetails = Payment & { athlete: Athlete & { sport: Sport } };
 
@@ -221,20 +223,18 @@ export default function PaymentsPage() {
     if (!confirm("Are you sure you want to delete this payment?")) return;
 
     try {
-      const { error } = await supabase
-        .from("payments")
-        .delete()
-        .eq("id", paymentId);
-
-      if (error) throw error;
-
+      // Use the deletePayment function from supabase.ts which handles organization filtering
+      await deletePayment(paymentId);
+      
       // Remove the deleted payment from the local state
       setPayments((currentPayments) =>
         currentPayments.filter((payment) => payment.id.toString() !== paymentId)
       );
+      
+      console.log(`Payment ${paymentId} successfully deleted`);
     } catch (error) {
       console.error("Error deleting payment:", error);
-      alert("Failed to delete payment. Please try again.");
+      alert(error instanceof Error ? error.message : "Failed to delete payment. Please try again.");
     }
   };
 
@@ -467,6 +467,12 @@ export default function PaymentsPage() {
                 </th>
                 <th
                   scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >
+                  Proof Link
+                </th>
+                <th
+                  scope="col"
                   className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                   onClick={() => toggleSort("amount")}
                 >
@@ -487,7 +493,7 @@ export default function PaymentsPage() {
               {filteredPayments.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={6}
+                    colSpan={7}
                     className="px-6 py-4 text-center text-sm text-gray-500"
                   >
                     No payments found matching your criteria
@@ -526,6 +532,20 @@ export default function PaymentsPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {payment.source}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {payment.link ? (
+                        <a
+                          href={payment.link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-ncaa-blue hover:text-ncaa-darkblue hover:underline"
+                        >
+                          View Proof
+                        </a>
+                      ) : (
+                        <span className="text-gray-400">No link provided</span>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-medium">
                       {formatCurrency(payment.amount)}

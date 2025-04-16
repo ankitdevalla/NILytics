@@ -9,6 +9,7 @@ interface PaymentEditModalProps {
     date: string;
     source: string;
     activity_type: string;
+    link?: string;
   };
   athletes: Array<{ id: string; name: string }>;
   onClose: () => void;
@@ -28,6 +29,7 @@ export default function PaymentEditModal({
     date: payment.date || new Date().toISOString().split("T")[0],
     source: payment.source || "",
     activity_type: payment.activity_type || "",
+    link: payment.link || "",
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -119,6 +121,7 @@ export default function PaymentEditModal({
         date: formData.date,
         source: formData.source,
         activity_type: formData.activity_type,
+        link: formData.link || undefined,
         organization_id: organizationId // Add organization_id to payment data
       };
 
@@ -259,6 +262,23 @@ export default function PaymentEditModal({
                 </option>
               ))}
             </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Proof Link
+            </label>
+            <input
+              type="url"
+              value={formData.link}
+              onChange={(e) =>
+                setFormData({ ...formData, link: e.target.value })
+              }
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ncaa-blue"
+              placeholder="https://example.com/proof-of-activity"
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              URL to proof of NIL activity (social media post, news article, etc.)
+            </p>
           </div>
           <div className="flex justify-end space-x-3 mt-6">
             <button

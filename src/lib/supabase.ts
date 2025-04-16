@@ -89,6 +89,7 @@ export type Payment = {
   activity_type: string;
   created_at: string;
   organization_id: string; // Changed from optional to required
+  link?: string; // URL to proof of NIL activity
   athlete?: Athlete & { sport?: Sport };
 };
 
@@ -671,13 +672,38 @@ export async function deleteAthleteWithPayments(id: number): Promise<void> {
   }
 }
 
-export async function deletePayment(id: number): Promise<void> {
+export async function deletePayment(id: number | string): Promise<void> {
   const supabase = getSupabase();
-  const { error } = await supabase.from("payments").delete().eq("id", id);
+  
+  // Get the current user's organization_id
+  const organizationId = await getCurrentUserOrganizationId();
+  
+  if (!organizationId) {
+    console.error('User does not belong to an organization');
+    throw new Error('User does not belong to an organization');
+  }
+  
+  console.log(`Attempting to delete payment ID ${id} for organization ${organizationId} using RPC`);
+  
+  // Convert id to string if it's a number to ensure consistent comparison
+  const paymentId = typeof id === 'number' ? id.toString() : id;
+  
+  try {
+    // Use RPC to execute the PostgreSQL function that handles payment deletion with organization security
+    const { error } = await supabase.rpc('delete_payment_by_id', {
+      p_payment_id: paymentId,
+      p_organization_id: organizationId
+    });
 
-  if (error) {
-    console.error(`Error deleting payment ID ${id}:`, error);
-    throw new Error(`Failed to delete payment ID ${id}`);
+    if (error) {
+      console.error(`Error in RPC delete_payment_by_id for ID ${paymentId}:`, error);
+      throw new Error(`Failed to delete payment: ${error.message}`);
+    }
+    
+    console.log(`Successfully deleted payment ID ${paymentId} via RPC`);
+  } catch (error) {
+    console.error(`Error deleting payment ID ${paymentId}:`, error);
+    throw error instanceof Error ? error : new Error('Unknown error deleting payment');
   }
 }
 
